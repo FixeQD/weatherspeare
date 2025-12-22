@@ -1,0 +1,121 @@
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { useWeather } from '@/composables/useWeather'
+import { useShakespeare } from '@/composables/useShakespeare'
+
+export const useWeatherStore = defineStore('weather', () => {
+	const {
+		weatherData,
+		forecastData,
+		loading,
+		forecastLoading,
+		error,
+		forecastError,
+		fetchWeather,
+		fetchForecast,
+	} = useWeather()
+
+	const {
+		monologue,
+		loading: shakespeareLoading,
+		error: shakespeareError,
+		generateMonologue,
+	} = useShakespeare()
+
+	const currentCity = ref('')
+	const recentCities = ref<string[]>([])
+	const weatherHistory = ref<any[]>([])
+
+	const forecast = computed(() => forecastData.value || [])
+
+	// Actions
+	const setCurrentCity = (city: string) => {
+		currentCity.value = city
+
+		if (!recentCities.value.includes(city)) {
+			recentCities.value = [city, ...recentCities.value.slice(0, 4)] // Keep max 5
+		}
+	}
+
+	const addToHistory = (weather: any) => {
+		if (!weather) return
+
+		const historyItem = {
+			id: Date.now(),
+			...weather,
+			timestamp: Date.now(),
+		}
+
+		weatherHistory.value = [historyItem, ...weatherHistory.value.slice(0, 4)] // Keep max 5
+	}
+
+	const fetchWeatherWithHistory = async (city: string) => {
+		setCurrentCity(city)
+		await fetchWeather(city)
+
+		if (weatherData.value) {
+			addToHistory(weatherData.value)
+		}
+	}
+
+	const generateWeatherMonologue = async () => {
+		if (weatherData.value) {
+			await generateMonologue(weatherData.value)
+		}
+	}
+
+	const initFromLocalStorage = () => {
+		if (!import.meta.client) return
+		try {
+			const savedCities = localStorage.getItem('recentCities')
+			if (savedCities) {
+				recentCities.value = JSON.parse(savedCities)
+			}
+
+			const savedHistory = localStorage.getItem('weatherHistory')
+			if (savedHistory) {
+				weatherHistory.value = JSON.parse(savedHistory)
+			}
+		} catch (error) {
+			console.error('Failed to load from localStorage:', error)
+		}
+	}
+
+	const saveToLocalStorage = () => {
+		if (!import.meta.client) return
+		try {
+			localStorage.setItem('recentCities', JSON.stringify(recentCities.value))
+			localStorage.setItem('weatherHistory', JSON.stringify(weatherHistory.value))
+		} catch (error) {
+			console.error('Failed to save to localStorage:', error)
+		}
+	}
+
+	initFromLocalStorage()
+
+	watch(
+		[recentCities, weatherHistory],
+		() => {
+			saveToLocalStorage()
+		},
+		{ deep: true }
+	)
+
+	return {
+		weatherData,
+		forecast,
+		monologue,
+		loading,
+		forecastLoading,
+		shakespeareLoading,
+		error,
+		forecastError,
+		shakespeareError,
+		currentCity,
+		recentCities,
+		weatherHistory,
+		fetchWeather: fetchWeatherWithHistory,
+		fetchForecast,
+		generateMonologue: generateWeatherMonologue,
+	}
+})
