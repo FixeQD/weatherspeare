@@ -1,5 +1,12 @@
 <template>
 	<div class="relative min-h-screen overflow-hidden">
+		<ClientOnly>
+			<ThreeScene
+				v-if="show3DScene"
+				:weather-type="currentWeatherType"
+				:debug-border="false"
+				@scene-ready="onSceneReady" />
+		</ClientOnly>
 		<div
 			class="relative min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 transition-colors duration-300 dark:from-gray-900 dark:to-gray-800">
 			<div class="container mx-auto px-4 py-8">
@@ -27,12 +34,52 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import { useWeatherStore } from './stores/weatherStore'
 import WeatherHeader from './components/weather/WeatherHeader.vue'
 import WeatherSearchSection from './components/weather/WeatherSearch.vue'
 import WeatherMainDisplay from './components/weather/WeatherDisplay.vue'
 import WeatherSidebar from './components/weather/WeatherSidebar.vue'
 import MonologueSection from './components/shakespeare/MonologueDisplay.vue'
 import WeatherFooter from './components/shared/WeatherFooter.vue'
+import ThreeScene from './components/3D/ThreeScene.vue'
+
+const weatherStore = useWeatherStore()
+
+const show3DScene = ref(true)
+const sceneReady = ref(false)
+
+const mapWeatherTo3DType = (weatherCondition: string): string => {
+	const condition = weatherCondition.toLowerCase()
+
+	if (condition.includes('rain') || condition.includes('drizzle')) {
+		return 'rain'
+	} else if (condition.includes('snow')) {
+		return 'snow'
+	} else if (condition.includes('thunder') || condition.includes('storm')) {
+		return 'storm'
+	} else if (condition.includes('cloud') || condition.includes('overcast')) {
+		return 'cloudy'
+	} else if (condition.includes('clear') || condition.includes('sunny')) {
+		return 'clear'
+	}
+
+	return 'clear'
+}
+
+const onSceneReady = () => {
+	sceneReady.value = true
+}
+
+watch(
+	() => weatherStore.weatherData,
+	(newWeatherData) => {
+		if (newWeatherData && sceneReady.value) {
+			console.debug('Weather changed, updating 3D scene')
+		}
+	},
+	{ deep: true }
+)
 </script>
 
 <style>
