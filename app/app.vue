@@ -4,14 +4,15 @@
 			<ThreeScene
 				v-if="show3DScene"
 				:weather-type="currentWeatherType"
+				:wind-degree="windDegree"
 				:debug-border="false"
 				@scene-ready="onSceneReady" />
 		</ClientOnly>
 		<ScrollParallax>
-			<div class="absolute inset-0 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 opacity-50"></div>
+			<div
+				class="absolute inset-0 bg-linear-to-br from-blue-50 to-indigo-100 opacity-50 dark:from-gray-900 dark:to-gray-800"></div>
 		</ScrollParallax>
-		<div
-			class="relative min-h-screen transition-colors duration-300">
+		<div class="relative min-h-screen transition-colors duration-300">
 			<div class="container mx-auto px-4 py-8">
 				<WeatherHeader />
 
@@ -78,6 +79,8 @@ const currentWeatherType = computed(() => {
 
 	return mapWeatherTo3DType(weatherStore.weatherData.weather[0].main)
 })
+
+const windDegree = computed(() => weatherStore.weatherData?.wind?.deg || 0)
 
 const onSceneReady = () => {
 	sceneReady.value = true

@@ -63,6 +63,10 @@ const props = defineProps({
 		type: Boolean,
 		default: false,
 	},
+	windDegree: {
+		type: Number,
+		default: 0,
+	},
 })
 
 const emit = defineEmits(['scene-ready'])
@@ -427,9 +431,9 @@ const createRain = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	const rainVelocities = new Float32Array(rainCount)
 
 	for (let i = 0; i < rainCount; i++) {
-		rainPositions[i * 3] = Math.random() * 20 - 10
-		rainPositions[i * 3 + 1] = Math.random() * 10 + 5
-		rainPositions[i * 3 + 2] = Math.random() * -10 - 5
+		rainPositions[i * 3] = Math.random() * 40 - 20
+		rainPositions[i * 3 + 1] = Math.random() * 10 + 10
+		rainPositions[i * 3 + 2] = Math.random() * -20 - 5
 		rainVelocities[i] = Math.random() * 0.5 + 0.3
 	}
 
@@ -455,13 +459,44 @@ const createRain = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 }
 
 const createSnow = (initialOpacity = 1, targetGroup?: THREE.Group) => {
-	const snowCount = 300
+	const snowCount = 800
 	const snowGeometry = new THREE.BufferGeometry()
+
+	const createSnowTexture = () => {
+		const canvas = document.createElement('canvas')
+		canvas.width = 64
+		canvas.height = 64
+		const ctx = canvas.getContext('2d')!
+		ctx.fillStyle = 'white'
+		ctx.fillRect(0, 0, 64, 64)
+		ctx.strokeStyle = 'white'
+		ctx.lineWidth = 2
+		ctx.beginPath()
+		ctx.moveTo(32, 16)
+		ctx.lineTo(32, 48)
+		ctx.moveTo(16, 32)
+		ctx.lineTo(48, 32)
+		ctx.moveTo(20, 20)
+		ctx.lineTo(44, 44)
+		ctx.moveTo(44, 20)
+		ctx.lineTo(20, 44)
+		ctx.stroke()
+		const tex = new THREE.CanvasTexture(canvas)
+		tex.needsUpdate = true
+		return tex
+	}
+
+	const snowTexture = createSnowTexture()
+
 	const snowMaterial = new THREE.PointsMaterial({
 		color: 0xffffff,
-		size: 0.08,
+		size: 0.18,
 		transparent: true,
-		opacity: initialOpacity,
+		opacity: initialOpacity * 0.8,
+		blending: THREE.AdditiveBlending,
+		depthWrite: false,
+		map: snowTexture,
+		alphaTest: 0.1,
 	})
 
 	const snowPositions = new Float32Array(snowCount * 3)
@@ -469,9 +504,9 @@ const createSnow = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	const snowSizes = new Float32Array(snowCount)
 
 	for (let i = 0; i < snowCount; i++) {
-		snowPositions[i * 3] = Math.random() * 20 - 10
-		snowPositions[i * 3 + 1] = Math.random() * 10 + 5
-		snowPositions[i * 3 + 2] = Math.random() * -10 - 5
+		snowPositions[i * 3] = Math.random() * 40 - 20
+		snowPositions[i * 3 + 1] = Math.random() * 10 + 10
+		snowPositions[i * 3 + 2] = Math.random() * -20 - 5
 		snowVelocities[i] = Math.random() * 0.2 + 0.1
 		snowSizes[i] = Math.random() * 0.05 + 0.03
 	}
@@ -562,15 +597,22 @@ const animate = () => {
 		if (obj instanceof THREE.Points && (obj as any).velocities) {
 			const positions = obj.geometry.attributes.position
 			const velocities = (obj as any).velocities
+			const windRad = (props.windDegree * Math.PI) / 180
+			const windStrength = props.weatherType === 'snow' ? 1.5 : 2.0
 
 			for (let i = 0; i < positions.count; i++) {
 				const y = positions.getY(i)
+				const x = positions.getX(i)
+				const z = positions.getZ(i)
 
 				if (y < -5) {
-					positions.setY(i, Math.random() * 5 + 5)
-					positions.setX(i, Math.random() * 20 - 10)
+					positions.setY(i, Math.random() * 10 + 10)
+					positions.setX(i, Math.random() * 40 - 20)
+					positions.setZ(i, Math.random() * -20 - 5)
 				} else {
 					positions.setY(i, y - velocities[i] * delta * 20)
+					positions.setX(i, x + Math.sin(windRad) * windStrength * delta)
+					positions.setZ(i, z - Math.cos(windRad) * windStrength * delta)
 				}
 			}
 

@@ -1,5 +1,5 @@
 <template>
-	<div class="scroll-parallax-container fixed inset-0 pointer-events-none -z-5">
+	<div class="scroll-parallax-container pointer-events-none fixed inset-0 -z-5">
 		<slot></slot>
 	</div>
 </template>
