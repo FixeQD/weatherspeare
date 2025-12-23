@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useWeatherStore } from './stores/weatherStore'
 import WeatherHeader from './components/weather/WeatherHeader.vue'
 import WeatherSearchSection from './components/weather/WeatherSearch.vue'
@@ -66,6 +66,14 @@ const mapWeatherTo3DType = (weatherCondition: string): string => {
 
 	return 'clear'
 }
+
+const currentWeatherType = computed(() => {
+	if (!weatherStore.weatherData?.weather?.[0]?.main) {
+		return 'clear'
+	}
+
+	return mapWeatherTo3DType(weatherStore.weatherData.weather[0].main)
+})
 
 const onSceneReady = () => {
 	sceneReady.value = true

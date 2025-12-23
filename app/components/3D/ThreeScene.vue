@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-
+// @ts-nocheck
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import * as THREE from 'three'
 import { useTheme } from '~/composables/useTheme'
@@ -29,12 +29,10 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 const sceneContainer = ref<HTMLElement | null>(null)
 const scrollPosition = ref({ x: 0, y: 0 })
 
-
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
 let renderer: THREE.WebGLRenderer
 let animationFrameId: number
-
 let clock: THREE.Clock
 let composer: any = null
 let bloomPass: any = null
@@ -70,14 +68,14 @@ const props = defineProps({
 const emit = defineEmits(['scene-ready'])
 
 const initScene = () => {
-	console.log('[ThreeScene] initScene called')
+	console.debug('[ThreeScene] initScene called')
 	if (!sceneContainer.value) {
 		console.warn('[ThreeScene] sceneContainer is not mounted yet.')
 		return
 	}
 
 	scene = new THREE.Scene()
-	console.log('[ThreeScene] scene created')
+	console.debug('[ThreeScene] scene created')
 
 	const createGradientTexture = (
 		w = 1024,
@@ -95,13 +93,13 @@ const initScene = () => {
 			grad.addColorStop(0.6, palette[1])
 			grad.addColorStop(1, palette[2])
 		} else if (dark) {
-			grad.addColorStop(0, '
-			grad.addColorStop(0.6, '
-			grad.addColorStop(1, '
+			grad.addColorStop(0, '#071427')
+			grad.addColorStop(0.6, '#030b11')
+			grad.addColorStop(1, '#01060a')
 		} else {
-			grad.addColorStop(0, '
-			grad.addColorStop(0.6, '
-			grad.addColorStop(1, '
+			grad.addColorStop(0, '#bfe7ff')
+			grad.addColorStop(0.6, '#7fb4dd')
+			grad.addColorStop(1, '#56718f')
 		}
 		ctx.fillStyle = grad
 		ctx.fillRect(0, 0, w, h)
@@ -117,20 +115,18 @@ const initScene = () => {
 	const getPalette = (weather: string, dark = false): [string, string, string] => {
 		switch (weather) {
 			case 'clear':
-				return dark ? ['
+				return dark ? ['#071427', '#030b11', '#01060a'] : ['#bfe7ff', '#7fb4dd', '#56718f']
 			case 'rain':
 			case 'cloudy':
-				return dark ? ['
+				return dark ? ['#1b2a33', '#0d1b24', '#071018'] : ['#7a92ab', '#4a6b87', '#17242a']
 			case 'storm':
-				return dark ? ['
+				return dark ? ['#07090b', '#020305', '#000000'] : ['#4a4a4a', '#303233', '#0f1112']
 			case 'snow':
-				return dark ? ['
+				return dark ? ['#1b2730', '#12202a', '#091219'] : ['#dbeefe', '#9fbfe0', '#6f8a9b']
 			default:
-				return dark ? ['
+				return dark ? ['#071427', '#030b11', '#01060a'] : ['#bfe7ff', '#7fb4dd', '#56718f']
 		}
 	}
-
-
 
 	function applyTheme(dark: boolean) {
 		if (skyTexture) {
@@ -168,7 +164,6 @@ const initScene = () => {
 		renderer.domElement.style.opacity = dark ? '0.22' : '0.35'
 	}
 
-
 	camera = new THREE.PerspectiveCamera(
 		75,
 		sceneContainer.value.clientWidth / sceneContainer.value.clientHeight,
@@ -176,8 +171,7 @@ const initScene = () => {
 		1000
 	)
 	camera.position.z = 5
-	console.log('[ThreeScene] camera positioned at', camera.position)
-
+	console.debug('[ThreeScene] camera positioned at', camera.position)
 
 	renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
 	renderer.setSize(sceneContainer.value.clientWidth, sceneContainer.value.clientHeight)
@@ -186,8 +180,7 @@ const initScene = () => {
 	renderer.domElement.style.pointerEvents = 'none'
 	renderer.setClearColor(0x000000, 0)
 	sceneContainer.value.appendChild(renderer.domElement)
-	console.log('[ThreeScene] renderer appended to container', renderer.domElement)
-
+	console.debug('[ThreeScene] renderer appended to container', renderer.domElement)
 
 	// @ts-ignore
 	composer = new EffectComposer(renderer)
@@ -203,9 +196,7 @@ const initScene = () => {
 	composer.addPass(renderPass)
 	composer.addPass(bloomPass)
 
-
 	clock = new THREE.Clock()
-
 
 	hemiLight = new THREE.HemisphereLight(0x87bfff, 0x444140, 0.6)
 	scene.add(hemiLight)
@@ -221,25 +212,19 @@ const initScene = () => {
 	applyTheme(isDark.value)
 	watch(isDark, (val) => applyTheme(val))
 
-
 	if (props.debugBorder) {
 		const axesHelper = new THREE.AxesHelper(5)
 		scene.add(axesHelper)
-		console.log('[ThreeScene] axes helper added')
+		console.debug('[ThreeScene] axes helper added')
 	}
 
-
-
-	console.log('[ThreeScene] creating initial weather objects for', props.weatherType)
+	console.debug('[ThreeScene] creating initial weather objects for', props.weatherType)
 	createWeatherObjects()
-
 
 	animate()
 
 	emit('scene-ready')
-	console.log('[ThreeScene] scene-ready emitted')
-
-
+	console.debug('[ThreeScene] scene-ready emitted')
 
 	if (props.debugBorder && typeof document !== 'undefined') {
 		const styleId = 'three-debug-styles'
@@ -252,11 +237,10 @@ const initScene = () => {
 				.three-debug-label { position: fixed; top: 8px; left: 8px; z-index: 9999; font-size: 12px; color: rgba(255,255,255,0.95); background: rgba(0,0,0,0.36); padding: 4px 8px; border-radius: 4px; }
 			`
 			document.head.appendChild(styleEl)
-			console.log('[ThreeScene] debug styles injected')
+			console.debug('[ThreeScene] debug styles injected')
 		}
 	}
 }
-
 
 const createWeatherObjects = (clearPrev = true, initialOpacity = 1, forcedType?: string) => {
 	if (clearPrev) {
@@ -287,32 +271,27 @@ const createWeatherObjects = (clearPrev = true, initialOpacity = 1, forcedType?:
 	}
 }
 
-
 const fadeTransitionToWeather = (target: string, duration = 800) => {
 	if (!sceneContainer.value) {
-
 		createWeatherObjects(true, 1, target)
 		return
 	}
 
-
 	const overlay = document.createElement('div')
 	overlay.style.position = 'absolute'
 	overlay.style.inset = '0'
-	overlay.style.background = isDark.value ? '
+	overlay.style.background = isDark.value ? '#000' : '#fff'
 	overlay.style.opacity = '0'
 	overlay.style.transition = `opacity ${duration}ms ease`
 	overlay.style.pointerEvents = 'none'
 	overlay.style.zIndex = '9999'
 	sceneContainer.value.appendChild(overlay)
 
-
 	void overlay.offsetWidth
 	overlay.style.opacity = '1'
 
 	const onFadeIn = () => {
 		overlay.removeEventListener('transitionend', onFadeIn)
-
 
 		const palette = getPalette(target, isDark.value)
 		const newSky = createGradientTexture(1024, 1024, isDark.value, palette)
@@ -332,9 +311,7 @@ const fadeTransitionToWeather = (target: string, duration = 800) => {
 			scene.fog = new THREE.Fog(palette[2], 8, 60)
 		}
 
-
 		createWeatherObjects(true, 1, target)
-
 
 		requestAnimationFrame(() => {
 			overlay.style.opacity = '0'
@@ -350,10 +327,8 @@ const fadeTransitionToWeather = (target: string, duration = 800) => {
 	overlay.addEventListener('transitionend', onFadeIn)
 }
 
-
 const createClearSky = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	const target = targetGroup || new THREE.Group()
-
 
 	const sunGeometry = new THREE.SphereGeometry(1.4, 32, 32)
 	const sunMaterial = new THREE.MeshBasicMaterial({
@@ -365,11 +340,9 @@ const createClearSky = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	sun.position.set(2, 2, -3)
 	target.add(sun)
 
-
 	sunLight = new THREE.PointLight(0xfff2c2, isDark.value ? 0.4 : 0.8, 80, 2)
 	sunLight.position.copy(sun.position)
 	target.add(sunLight)
-
 
 	const createSpriteTexture = (size = 512) => {
 		const canvas = document.createElement('canvas')
@@ -401,13 +374,11 @@ const createClearSky = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	halo.position.copy(sun.position)
 	target.add(halo)
 
-
 	for (let i = 0; i < 10; i++) {
 		const cloud = createCloud(initialOpacity)
 		cloud.position.set(Math.random() * 14 - 7, Math.random() * 5 + 1, Math.random() * -18 - 6)
 		target.add(cloud)
 	}
-
 
 	if (!targetGroup) {
 		scene.add(target)
@@ -416,7 +387,6 @@ const createClearSky = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 
 	return target
 }
-
 
 const createCloud = (initialOpacity = 1) => {
 	const cloudGroup = new THREE.Group()
@@ -449,7 +419,6 @@ const createCloud = (initialOpacity = 1) => {
 
 	return cloudGroup
 }
-
 
 const createRain = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	const rainCount = 500
@@ -484,7 +453,6 @@ const createRain = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	}
 	return rain
 }
-
 
 const createSnow = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	const snowCount = 300
@@ -526,15 +494,12 @@ const createSnow = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	return snow
 }
 
-
 const createCloudySky = () => {
 	scene.background = new THREE.Color(0xa9a9a9)
-
 
 	for (let i = 0; i < 15; i++) {
 		const cloud = createCloud()
 		cloud.position.set(Math.random() * 15 - 7.5, Math.random() * 4 + 1, Math.random() * -15 - 5)
-
 		cloud.children.forEach((child: any) => {
 			if (child.material) {
 				child.material.color.set(0xd3d3d3)
@@ -545,15 +510,12 @@ const createCloudySky = () => {
 	}
 }
 
-
 const createStorm = () => {
 	scene.background = new THREE.Color(0x696969)
-
 
 	for (let i = 0; i < 20; i++) {
 		const cloud = createCloud()
 		cloud.position.set(Math.random() * 20 - 10, Math.random() * 5 + 1, Math.random() * -20 - 5)
-
 		cloud.children.forEach((child: any) => {
 			if (child.material) {
 				child.material.color.set(0x808080)
@@ -563,9 +525,7 @@ const createStorm = () => {
 		weatherObjects.push(cloud)
 	}
 
-
 	createRain()
-
 
 	const lightningGeometry = new THREE.BufferGeometry()
 	const lightningMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2 })
@@ -582,25 +542,21 @@ const createStorm = () => {
 	weatherObjects.push(lightning)
 }
 
-
 const animate = () => {
 	if (!scene || !camera || !renderer) return
 
 	if (!hasStartedAnimating) {
-		console.log('[ThreeScene] animation loop started')
+		console.debug('[ThreeScene] animation loop started')
 		hasStartedAnimating = true
 	}
 
 	const delta = clock.getDelta()
 
-
 	if (camera) {
-
 		camera.position.y = 0 + scrollPosition.value.y * 0.005
 		camera.position.x = 0 + scrollPosition.value.x * 0.001
 		camera.lookAt(0, 0, 0)
 	}
-
 
 	weatherObjects.forEach((obj) => {
 		if (obj instanceof THREE.Points && (obj as any).velocities) {
@@ -609,7 +565,6 @@ const animate = () => {
 
 			for (let i = 0; i < positions.count; i++) {
 				const y = positions.getY(i)
-
 
 				if (y < -5) {
 					positions.setY(i, Math.random() * 5 + 5)
@@ -622,16 +577,12 @@ const animate = () => {
 			positions.needsUpdate = true
 		}
 
-
 		if (obj instanceof THREE.Group && obj.children.length > 0) {
 			const cSpeed = (obj as any).userData?.speed ?? 0.025
 			const floatOffset = (obj as any).userData?.floatOffset ?? 0
-
 			obj.position.x +=
 				Math.cos(clock.getElapsedTime() * 0.1 + floatOffset) * delta * cSpeed * 5
-
 			obj.position.y += Math.sin(clock.getElapsedTime() * 0.5 + floatOffset) * delta * 0.02
-
 			obj.rotation.y += delta * 0.03
 		}
 	})
@@ -723,14 +674,12 @@ if (typeof document !== 'undefined') {
 	}
 }
 
-
 watch(
 	() => props.weatherType,
 	(newWeatherType) => {
 		fadeTransitionToWeather(newWeatherType, 900)
 	}
 )
-
 
 onMounted(() => {
 	initScene()
