@@ -7,8 +7,11 @@
 				:debug-border="false"
 				@scene-ready="onSceneReady" />
 		</ClientOnly>
+		<ScrollParallax>
+			<div class="absolute inset-0 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 opacity-50"></div>
+		</ScrollParallax>
 		<div
-			class="relative min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 transition-colors duration-300 dark:from-gray-900 dark:to-gray-800">
+			class="relative min-h-screen transition-colors duration-300">
 			<div class="container mx-auto px-4 py-8">
 				<WeatherHeader />
 
@@ -43,6 +46,7 @@ import WeatherSidebar from './components/weather/WeatherSidebar.vue'
 import MonologueSection from './components/shakespeare/MonologueDisplay.vue'
 import WeatherFooter from './components/shared/WeatherFooter.vue'
 import ThreeScene from './components/3D/ThreeScene.vue'
+import ScrollParallax from './components/3D/ScrollParallax.vue'
 
 const weatherStore = useWeatherStore()
 
