@@ -6,14 +6,16 @@ export function useShakespeare() {
 	const loading = ref(false)
 	const error = ref<string | null>(null)
 
-	const generateMonologue = async (weatherData: any) => {
+	const generateMonologue = async (weatherData: any, language: string = 'English') => {
 		loading.value = true
 		error.value = null
 		try {
 			const config = useRuntimeConfig()
 			const baseUrl = config.public.OPENAI_API_BASE_URL || 'https://api.openai.com/v1'
 			const prompt =
-				'Transform this weather forecast into an absurd Shakespearean monologue. Make it dramatic, use archaic language like "thou", "thee", "hath", exaggerate the weather conditions comically (e.g., rain as tears of the gods, sun as fiery chariot), include references to Elizabethan theater, Shakespeare plays, or historical figures. The monologue should be spoken by a character reacting to the weather, perhaps a jester or a tragic hero. Keep it around 200-300 words. Make it quirky and humorous.\n\nWeather data: ' +
+				'Transform this weather forecast into an absurd Shakespearean monologue. Make it dramatic, use archaic language like "thou", "thee", "hath", exaggerate the weather conditions comically (e.g., rain as tears of the gods, sun as fiery chariot), include references to Elizabethan theater, Shakespeare plays, or historical figures. The monologue should be spoken by a character reacting to the weather, perhaps a jester or a tragic hero. Keep it around 200-300 words. Make it quirky and humorous. Generate the monologue in ' +
+				language +
+				' language.\n\nWeather data: ' +
 				JSON.stringify(weatherData) +
 				'\n\nRespond only with the monologue text, no explanations.'
 

@@ -71,6 +71,22 @@ const props = defineProps({
 
 const emit = defineEmits(['scene-ready'])
 
+const getPalette = (weather: string, dark = false): [string, string, string] => {
+	switch (weather) {
+		case 'clear':
+			return dark ? ['#071427', '#030b11', '#01060a'] : ['#bfe7ff', '#7fb4dd', '#56718f']
+		case 'rain':
+		case 'cloudy':
+			return dark ? ['#1b2a33', '#0d1b24', '#071018'] : ['#7a92ab', '#4a6b87', '#17242a']
+		case 'storm':
+			return dark ? ['#07090b', '#020305', '#000000'] : ['#4a4a4a', '#303233', '#0f1112']
+		case 'snow':
+			return dark ? ['#1b2730', '#12202a', '#091219'] : ['#dbeefe', '#9fbfe0', '#6f8a9b']
+		default:
+			return dark ? ['#071427', '#030b11', '#01060a'] : ['#bfe7ff', '#7fb4dd', '#56718f']
+	}
+}
+
 const initScene = () => {
 	console.debug('[ThreeScene] initScene called')
 	if (!sceneContainer.value) {
@@ -115,22 +131,6 @@ const initScene = () => {
 	skyTexture = createGradientTexture(1024, 1024, isDark.value)
 	scene.background = skyTexture
 	scene.fog = new THREE.Fog(isDark.value ? 0x0b1418 : 0x17242a, 8, 60)
-
-	const getPalette = (weather: string, dark = false): [string, string, string] => {
-		switch (weather) {
-			case 'clear':
-				return dark ? ['#071427', '#030b11', '#01060a'] : ['#bfe7ff', '#7fb4dd', '#56718f']
-			case 'rain':
-			case 'cloudy':
-				return dark ? ['#1b2a33', '#0d1b24', '#071018'] : ['#7a92ab', '#4a6b87', '#17242a']
-			case 'storm':
-				return dark ? ['#07090b', '#020305', '#000000'] : ['#4a4a4a', '#303233', '#0f1112']
-			case 'snow':
-				return dark ? ['#1b2730', '#12202a', '#091219'] : ['#dbeefe', '#9fbfe0', '#6f8a9b']
-			default:
-				return dark ? ['#071427', '#030b11', '#01060a'] : ['#bfe7ff', '#7fb4dd', '#56718f']
-		}
-	}
 
 	function applyTheme(dark: boolean) {
 		if (skyTexture) {

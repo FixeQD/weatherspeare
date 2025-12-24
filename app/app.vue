@@ -7,6 +7,10 @@
 				:wind-degree="windDegree"
 				:debug-border="false"
 				@scene-ready="onSceneReady" />
+			<WeatherElements
+				v-if="show3DScene"
+				:weather-type="currentWeatherType"
+				:debug-border="false" />
 		</ClientOnly>
 		<ScrollParallax>
 			<div

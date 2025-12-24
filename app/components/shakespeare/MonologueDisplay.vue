@@ -19,15 +19,24 @@
 						<Minimize v-else class="h-4 w-4" />
 					</Button>
 				</div>
-				<Button
-					@click="regenerateMonologue"
-					variant="outline"
-					size="sm"
-					:disabled="shakespeareLoading">
-					<RefreshCw v-if="!shakespeareLoading" class="mr-2 h-4 w-4" />
-					<Loader2 v-else class="mr-2 h-4 w-4 animate-spin" />
-					<span>{{ shakespeareLoading ? 'Generating...' : 'Regenerate' }}</span>
-				</Button>
+				<div class="flex items-center gap-2">
+					<select
+						v-model="selectedLanguage"
+						class="w-40 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800">
+						<option v-for="lang in languages" :key="lang.code" :value="lang.code">
+							{{ lang.name }}
+						</option>
+					</select>
+					<Button
+						@click="regenerateMonologue"
+						variant="outline"
+						size="sm"
+						:disabled="shakespeareLoading">
+						<RefreshCw v-if="!shakespeareLoading" class="mr-2 h-4 w-4" />
+						<Loader2 v-else class="mr-2 h-4 w-4 animate-spin" />
+						<span>{{ shakespeareLoading ? 'Generating...' : 'Regenerate' }}</span>
+					</Button>
+				</div>
 			</div>
 
 			<div
@@ -103,20 +112,31 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import LoadingSpinner from '../shared/LoadingSpinner.vue'
 import { useWeatherStore } from '@/stores/weatherStore'
+import { useShakespeare } from '@/composables/useShakespeare'
 import { useClipboard } from '@vueuse/core'
 
 const weatherStore = useWeatherStore()
+const {
+	generateMonologue: generateShakespeareMonologue,
+	monologue: shakespeareMonologue,
+	loading: shakespeareGenLoading,
+	error: shakespeareGenError,
+} = useShakespeare()
 
-const monologue = computed(() => weatherStore.monologue)
-const shakespeareLoading = computed(() => weatherStore.shakespeareLoading)
-const shakespeareError = computed(() => weatherStore.shakespeareError)
+const monologue = computed(() => weatherStore.monologue || shakespeareMonologue.value)
+const shakespeareLoading = computed(
+	() => weatherStore.shakespeareLoading || shakespeareGenLoading.value
+)
+const shakespeareError = computed(() => weatherStore.shakespeareError || shakespeareGenError.value)
 const weatherData = computed(() => weatherStore.weatherData)
 
 const { copy, copied } = useClipboard()
 const isFullscreen = ref(false)
 const cardRef = ref()
+const selectedLanguage = ref('en')
+const languages = ref([] as { code: string; name: string }[])
 
-onMounted(() => {
+onMounted(async () => {
 	const handleFullscreenChange = () => {
 		isFullscreen.value = !!document.fullscreenElement
 	}
@@ -124,6 +144,20 @@ onMounted(() => {
 	onUnmounted(() => {
 		document.removeEventListener('fullscreenchange', handleFullscreenChange)
 	})
+
+	try {
+		const response = await fetch('https://libretranslate.com/languages')
+		const data = await response.json()
+		languages.value = data.map((lang: any) => ({ code: lang.code, name: lang.name }))
+	} catch (error) {
+		console.error('Failed to fetch languages:', error)
+		languages.value = [
+			{ code: 'en', name: 'English' },
+			{ code: 'pl', name: 'Polish' },
+			{ code: 'fr', name: 'French' },
+			{ code: 'es', name: 'Spanish' },
+		]
+	}
 })
 
 const formattedMonologue = computed(() => {
@@ -147,7 +181,13 @@ const toggleFullscreen = () => {
 
 const regenerateMonologue = async () => {
 	if (weatherData.value) {
-		await weatherStore.generateMonologue()
+		const langName =
+			languages.value.find((lang) => lang.code === selectedLanguage.value)?.name ||
+			selectedLanguage.value
+		await generateShakespeareMonologue(weatherData.value, langName)
+		if (shakespeareMonologue.value) {
+			weatherStore.monologue = shakespeareMonologue.value
+		}
 	}
 }
 </script>
