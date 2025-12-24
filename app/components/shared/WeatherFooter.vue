@@ -11,7 +11,7 @@
 			</a>
 			<span>|</span>
 			<a
-				href="https://github.com"
+				href="https://github.com/FixeQD/weatherspeare"
 				target="_blank"
 				rel="noopener noreferrer"
 				class="transition-colors hover:text-blue-600 dark:hover:text-blue-400">
