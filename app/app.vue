@@ -4,24 +4,29 @@
 			<ThreeScene
 				v-if="show3DScene"
 				:weather-type="currentWeatherType"
-				:wind-degree="windDegree"
 				:debug-border="false"
 				@scene-ready="onSceneReady" />
-			<WeatherElements
-				v-if="show3DScene"
-				:weather-type="currentWeatherType"
-				:debug-border="false" />
+
+			<Suspense>
+				<WeatherElements
+					v-if="show3DScene"
+					:weather-type="currentWeatherType"
+					:debug-border="false" />
+				<template #fallback>
+					<div></div>
+				</template>
+			</Suspense>
 		</ClientOnly>
-		<ScrollParallax>
-			<div
-				class="absolute inset-0 bg-linear-to-br from-blue-50 to-indigo-100 opacity-50 dark:from-gray-900 dark:to-gray-800"></div>
-		</ScrollParallax>
-		<div class="relative min-h-screen transition-colors duration-300">
+
+		<div
+			class="relative min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 transition-colors duration-300 dark:from-gray-900 dark:to-gray-800">
 			<div class="container mx-auto px-4 py-8">
 				<WeatherHeader />
 
 				<main class="mt-8">
-					<WeatherSearchSection />
+					<ClientOnly>
+						<WeatherSearchSection />
+					</ClientOnly>
 
 					<div class="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-3">
 						<div class="lg:col-span-2">
@@ -42,8 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useWeatherStore } from './stores/weatherStore'
+h
 import WeatherHeader from './components/weather/WeatherHeader.vue'
 import WeatherSearchSection from './components/weather/WeatherSearch.vue'
 import WeatherMainDisplay from './components/weather/WeatherDisplay.vue'
@@ -51,10 +55,10 @@ import WeatherSidebar from './components/weather/WeatherSidebar.vue'
 import MonologueSection from './components/shakespeare/MonologueDisplay.vue'
 import WeatherFooter from './components/shared/WeatherFooter.vue'
 import ThreeScene from './components/3D/ThreeScene.vue'
-import ScrollParallax from './components/3D/ScrollParallax.vue'
 
 const weatherStore = useWeatherStore()
 
+const WeatherElements = defineAsyncComponent(() => import('./components/3D/WeatherElements.vue'))
 const show3DScene = ref(true)
 const sceneReady = ref(false)
 
@@ -84,8 +88,6 @@ const currentWeatherType = computed(() => {
 	return mapWeatherTo3DType(weatherStore.weatherData.weather[0].main)
 })
 
-const windDegree = computed(() => weatherStore.weatherData?.wind?.deg || 0)
-
 const onSceneReady = () => {
 	sceneReady.value = true
 }
@@ -102,7 +104,6 @@ watch(
 </script>
 
 <style>
-/* Global transitions and animations */
 .fade-enter-active,
 .fade-leave-active {
 	transition: opacity 0.3s ease;

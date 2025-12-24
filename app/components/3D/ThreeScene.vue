@@ -87,6 +87,38 @@ const getPalette = (weather: string, dark = false): [string, string, string] => 
 	}
 }
 
+const createGradientTexture = (
+	w = 1024,
+	h = 1024,
+	dark = false,
+	palette?: [string, string, string]
+) => {
+	const canvas = document.createElement('canvas')
+	canvas.width = w
+	canvas.height = h
+	const ctx = canvas.getContext('2d')!
+	const grad = ctx.createLinearGradient(0, 0, 0, h)
+	if (palette && palette.length === 3) {
+		grad.addColorStop(0, palette[0])
+		grad.addColorStop(0.6, palette[1])
+		grad.addColorStop(1, palette[2])
+	} else if (dark) {
+		grad.addColorStop(0, '#071427')
+		grad.addColorStop(0.6, '#030b11')
+		grad.addColorStop(1, '#01060a')
+	} else {
+		grad.addColorStop(0, '#bfe7ff')
+		grad.addColorStop(0.6, '#7fb4dd')
+		grad.addColorStop(1, '#56718f')
+	}
+	ctx.fillStyle = grad
+	ctx.fillRect(0, 0, w, h)
+	const tex = new THREE.CanvasTexture(canvas)
+	tex.needsUpdate = true
+	;(tex as any).__paletteTarget = (palette && palette[2]) || null
+	return tex
+}
+
 const initScene = () => {
 	console.debug('[ThreeScene] initScene called')
 	if (!sceneContainer.value) {
@@ -97,37 +129,6 @@ const initScene = () => {
 	scene = new THREE.Scene()
 	console.debug('[ThreeScene] scene created')
 
-	const createGradientTexture = (
-		w = 1024,
-		h = 1024,
-		dark = false,
-		palette?: [string, string, string]
-	) => {
-		const canvas = document.createElement('canvas')
-		canvas.width = w
-		canvas.height = h
-		const ctx = canvas.getContext('2d')!
-		const grad = ctx.createLinearGradient(0, 0, 0, h)
-		if (palette && palette.length === 3) {
-			grad.addColorStop(0, palette[0])
-			grad.addColorStop(0.6, palette[1])
-			grad.addColorStop(1, palette[2])
-		} else if (dark) {
-			grad.addColorStop(0, '#071427')
-			grad.addColorStop(0.6, '#030b11')
-			grad.addColorStop(1, '#01060a')
-		} else {
-			grad.addColorStop(0, '#bfe7ff')
-			grad.addColorStop(0.6, '#7fb4dd')
-			grad.addColorStop(1, '#56718f')
-		}
-		ctx.fillStyle = grad
-		ctx.fillRect(0, 0, w, h)
-		const tex = new THREE.CanvasTexture(canvas)
-		tex.needsUpdate = true
-		;(tex as any).__paletteTarget = (palette && palette[2]) || null
-		return tex
-	}
 	skyTexture = createGradientTexture(1024, 1024, isDark.value)
 	scene.background = skyTexture
 	scene.fog = new THREE.Fog(isDark.value ? 0x0b1418 : 0x17242a, 8, 60)
