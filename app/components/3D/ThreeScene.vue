@@ -57,7 +57,8 @@ const props = defineProps({
 	weatherType: {
 		type: String,
 		default: 'clear',
-		validator: (value: string) => ['clear', 'rain', 'snow', 'cloudy', 'storm'].includes(value),
+		validator: (value: string) =>
+			['clear', 'rain', 'snow', 'cloudy', 'storm', 'partly'].includes(value),
 	},
 	debugBorder: {
 		type: Boolean,
@@ -116,6 +117,23 @@ const createGradientTexture = (
 	const tex = new THREE.CanvasTexture(canvas)
 	tex.needsUpdate = true
 	;(tex as any).__paletteTarget = (palette && palette[2]) || null
+	return tex
+}
+
+const createSpriteTexture = (size = 512) => {
+	const canvas = document.createElement('canvas')
+	canvas.width = size
+	canvas.height = size
+	const ctx = canvas.getContext('2d')!
+
+	const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
+	grad.addColorStop(0, 'rgba(255,255,255,0.9)')
+	grad.addColorStop(0.6, 'rgba(255,140,30,0.25)')
+	grad.addColorStop(1, 'rgba(0,0,0,0)')
+	ctx.fillStyle = grad
+	ctx.fillRect(0, 0, size, size)
+	const tex = new THREE.CanvasTexture(canvas)
+	tex.needsUpdate = true
 	return tex
 }
 
@@ -253,14 +271,16 @@ const createWeatherObjects = (clearPrev = true, initialOpacity = 1, forcedType?:
 		weatherObjects = []
 	}
 
-	const type = forcedType || props.weatherType
+	const target = forcedType || props.weatherType
 
-	switch (type) {
+	switch (target) {
 		case 'clear':
 			createClearSky(initialOpacity)
 			break
+		case 'partly':
+			createPartlyCloudySky(initialOpacity)
+			break
 		case 'rain':
-			createRain(initialOpacity)
 			break
 		case 'snow':
 			createSnow(initialOpacity)
@@ -349,22 +369,6 @@ const createClearSky = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	sunLight.position.copy(sun.position)
 	target.add(sunLight)
 
-	const createSpriteTexture = (size = 512) => {
-		const canvas = document.createElement('canvas')
-		canvas.width = size
-		canvas.height = size
-		const ctx = canvas.getContext('2d')!
-		const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-		grad.addColorStop(0, 'rgba(255,245,180,0.95)')
-		grad.addColorStop(0.2, 'rgba(255,210,100,0.7)')
-		grad.addColorStop(0.6, 'rgba(255,140,30,0.25)')
-		grad.addColorStop(1, 'rgba(0,0,0,0)')
-		ctx.fillStyle = grad
-		ctx.fillRect(0, 0, size, size)
-		const tex = new THREE.CanvasTexture(canvas)
-		tex.needsUpdate = true
-		return tex
-	}
 	sunHaloTexture = createSpriteTexture(512)
 	const spriteMaterial = new THREE.SpriteMaterial({
 		map: sunHaloTexture,
@@ -379,9 +383,68 @@ const createClearSky = (initialOpacity = 1, targetGroup?: THREE.Group) => {
 	halo.position.copy(sun.position)
 	target.add(halo)
 
-	for (let i = 0; i < 10; i++) {
+	if (!targetGroup) {
+		scene.add(target)
+		target.children.forEach((child) => weatherObjects.push(child))
+	}
+
+	return target
+}
+
+const createPartlyCloudySky = (initialOpacity = 1, targetGroup?: THREE.Group) => {
+	const target = targetGroup || new THREE.Group()
+
+	const sunGeometry = new THREE.SphereGeometry(1.4, 32, 32)
+	const sunMaterial = new THREE.MeshBasicMaterial({
+		color: 0xffd085,
+		transparent: true,
+		opacity: 0.7 * initialOpacity,
+	})
+	const sun = new THREE.Mesh(sunGeometry, sunMaterial)
+	sun.position.set(2, 2, -3)
+	target.add(sun)
+
+	const sunLight = new THREE.PointLight(0xfff0c0, 0.4, 8)
+	sunLight.position.copy(sun.position)
+	target.add(sunLight)
+
+	sunHaloTexture = sunHaloTexture || createSpriteTexture(512)
+	const spriteMaterial = new THREE.SpriteMaterial({
+		map: sunHaloTexture,
+		color: 0xffffff,
+		transparent: true,
+		opacity: 0.4 * initialOpacity,
+		depthWrite: false,
+		blending: THREE.AdditiveBlending,
+	})
+	const localHalo = new THREE.Sprite(spriteMaterial)
+	localHalo.scale.set(5, 5, 1)
+	localHalo.position.copy(sun.position)
+	target.add(localHalo)
+
+	const cloudCount = 10
+	for (let i = 0; i < cloudCount; i++) {
 		const cloud = createCloud(initialOpacity)
-		cloud.position.set(Math.random() * 14 - 7, Math.random() * 5 + 1, Math.random() * -18 - 6)
+		if (i < 2) {
+			const x = sun.position.x + (Math.random() * 1.8 - 0.9)
+			const y = sun.position.y + (Math.random() * 1.2 - 0.6)
+			const z = -2 + Math.random() * 1
+			cloud.position.set(x, y, z)
+		} else {
+			cloud.position.set(
+				Math.random() * 10 - 5,
+				Math.random() * 3 + 0.5,
+				Math.random() * -6 - 2
+			)
+		}
+
+		cloud.children.forEach((child: any) => {
+			if (child.material) {
+				child.material.opacity = 0.7 + Math.random() * 0.3
+				child.material.color.set(0xc0c0c0)
+			}
+		})
+
 		target.add(cloud)
 	}
 
@@ -423,40 +486,6 @@ const createCloud = (initialOpacity = 1) => {
 	cloudGroup.userData.floatOffset = Math.random() * 10
 
 	return cloudGroup
-}
-
-const createRain = (initialOpacity = 1, targetGroup?: THREE.Group) => {
-	const rainCount = 500
-	const rainGeometry = new THREE.BufferGeometry()
-	const rainPositions = new Float32Array(rainCount * 3)
-	const rainVelocities = new Float32Array(rainCount)
-
-	for (let i = 0; i < rainCount; i++) {
-		rainPositions[i * 3] = Math.random() * 40 - 20
-		rainPositions[i * 3 + 1] = Math.random() * 10 + 10
-		rainPositions[i * 3 + 2] = Math.random() * -20 - 5
-		rainVelocities[i] = Math.random() * 0.5 + 0.3
-	}
-
-	rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3))
-
-	const rainMaterial = new THREE.PointsMaterial({
-		color: 0xaaaaff,
-		size: 0.1,
-		transparent: true,
-		opacity: initialOpacity,
-	})
-
-	const rain = new THREE.Points(rainGeometry, rainMaterial)
-	;(rain as any).velocities = rainVelocities
-
-	if (targetGroup) {
-		targetGroup.add(rain)
-	} else {
-		scene.add(rain)
-		weatherObjects.push(rain)
-	}
-	return rain
 }
 
 const createSnow = (initialOpacity = 1, targetGroup?: THREE.Group) => {
@@ -561,8 +590,6 @@ const createStorm = () => {
 		weatherObjects.push(cloud)
 	}
 
-	createRain()
-
 	const lightningGeometry = new THREE.BufferGeometry()
 	const lightningMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2 })
 
@@ -589,37 +616,11 @@ const animate = () => {
 	const delta = clock.getDelta()
 
 	if (camera) {
-		camera.position.y = 0 + scrollPosition.value.y * 0.005
-		camera.position.x = 0 + scrollPosition.value.x * 0.001
+		camera.position.set(0, 5 + scrollPosition.value.y * 0.005, 5)
 		camera.lookAt(0, 0, 0)
 	}
 
 	weatherObjects.forEach((obj) => {
-		if (obj instanceof THREE.Points && (obj as any).velocities) {
-			const positions = obj.geometry.attributes.position
-			const velocities = (obj as any).velocities
-			const windRad = (props.windDegree * Math.PI) / 180
-			const windStrength = props.weatherType === 'snow' ? 1.5 : 2.0
-
-			for (let i = 0; i < positions.count; i++) {
-				const y = positions.getY(i)
-				const x = positions.getX(i)
-				const z = positions.getZ(i)
-
-				if (y < -5) {
-					positions.setY(i, Math.random() * 10 + 10)
-					positions.setX(i, Math.random() * 40 - 20)
-					positions.setZ(i, Math.random() * -20 - 5)
-				} else {
-					positions.setY(i, y - velocities[i] * delta * 20)
-					positions.setX(i, x + Math.sin(windRad) * windStrength * delta)
-					positions.setZ(i, z - Math.cos(windRad) * windStrength * delta)
-				}
-			}
-
-			positions.needsUpdate = true
-		}
-
 		if (obj instanceof THREE.Group && obj.children.length > 0) {
 			const cSpeed = (obj as any).userData?.speed ?? 0.025
 			const floatOffset = (obj as any).userData?.floatOffset ?? 0
