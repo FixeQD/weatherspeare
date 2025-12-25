@@ -52,14 +52,14 @@
 			<Card class="text-center">
 				<CardContent class="p-4">
 					<Sunrise class="mx-auto mb-2 h-8 w-8 text-yellow-500" />
-					<div class="font-semibold">{{ formatTime(weatherData.sys.sunrise) }}</div>
+					<div class="font-semibold">{{ weatherData.sys.sunrise }}</div>
 					<div class="text-sm text-gray-500 dark:text-gray-400">Sunrise</div>
 				</CardContent>
 			</Card>
 			<Card class="text-center">
 				<CardContent class="p-4">
 					<Sunset class="mx-auto mb-2 h-8 w-8 text-orange-500" />
-					<div class="font-semibold">{{ formatTime(weatherData.sys.sunset) }}</div>
+					<div class="font-semibold">{{ weatherData.sys.sunset }}</div>
 					<div class="text-sm text-gray-500 dark:text-gray-400">Sunset</div>
 				</CardContent>
 			</Card>
@@ -100,6 +100,27 @@ interface WeatherData {
 		lon: number
 		lat: number
 	}
+
+	clouds: {
+		all: number
+	}
+	sys: {
+		country: string
+		sunrise: string
+		sunset: string
+	}
+	visibility: number
+	dt: number
+	timezone: string
+	name: string
+	weather: Array<{
+		main: string
+		description: string
+	}>
+	wind: {
+		speed: number
+		deg: number
+	}
 	main: {
 		temp: number
 		feels_like: number
@@ -108,44 +129,13 @@ interface WeatherData {
 		pressure: number
 		humidity: number
 	}
-	wind: {
-		speed: number
-		deg: number
-	}
-	clouds: {
-		all: number
-	}
-	sys: {
-		country: string
-		sunrise: number
-		sunset: number
-	}
-	visibility: number
-	dt: number
-	timezone: number
-	name: string
-	weather: Array<{
-		main: string
-		description: string
-		icon: string
-	}>
 }
 
 const props = defineProps<{
 	weatherData: WeatherData
 }>()
 
-const formatTime = (timestamp: number) => {
-	return new Date(timestamp * 1000).toLocaleTimeString('en-US', {
-		hour: '2-digit',
-		minute: '2-digit',
-	})
-}
-
-const formatTimezone = (offset: number) => {
-	const hours = Math.floor(offset / 3600)
-	const minutes = Math.floor((offset % 3600) / 60)
-	const sign = hours >= 0 ? '+' : '-'
-	return `${sign}${Math.abs(hours).toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+const formatTimezone = (tz: string) => {
+	return tz || 'Unknown'
 }
 </script>

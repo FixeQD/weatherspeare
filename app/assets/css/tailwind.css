@@ -118,3 +118,279 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+:root {
+	--sky-clear-start: oklch(0.85 0.12 220);
+	--sky-clear-mid: oklch(0.72 0.15 230);
+	--sky-clear-end: oklch(0.55 0.18 240);
+
+	--sun-core: oklch(0.95 0.18 85);
+	--sun-glow: oklch(0.88 0.2 70);
+	--sun-halo: oklch(0.78 0.15 55);
+
+	--rain-sky: oklch(0.55 0.08 240);
+	--rain-cloud: oklch(0.65 0.05 245);
+	--storm-dark: oklch(0.35 0.06 260);
+
+	--snow-white: oklch(0.98 0.01 270);
+	--snow-blue: oklch(0.88 0.06 240);
+	--frost: oklch(0.92 0.04 220);
+
+	--glass-bg: oklch(1 0 0 / 60%);
+	--glass-border: oklch(1 0 0 / 30%);
+	--glass-shadow: oklch(0 0 0 / 10%);
+}
+
+.dark {
+	--glass-bg: oklch(0.2 0 0 / 50%);
+	--glass-border: oklch(1 0 0 / 10%);
+	--glass-shadow: oklch(0 0 0 / 30%);
+	
+	--sky-clear-start: oklch(0.18 0.08 260);
+	--sky-clear-mid: oklch(0.12 0.06 250);
+	--sky-clear-end: oklch(0.08 0.04 240);
+}
+
+.glass {
+	background: var(--glass-bg);
+	backdrop-filter: blur(16px) saturate(180%);
+	-webkit-backdrop-filter: blur(16px) saturate(180%);
+	border: 1px solid var(--glass-border);
+	box-shadow: 0 8px 32px var(--glass-shadow);
+}
+
+.glass-subtle {
+	background: var(--glass-bg);
+	backdrop-filter: blur(8px) saturate(150%);
+	-webkit-backdrop-filter: blur(8px) saturate(150%);
+	border: 1px solid var(--glass-border);
+}
+
+.glass-strong {
+	background: oklch(1 0 0 / 75%);
+	backdrop-filter: blur(24px) saturate(200%);
+	-webkit-backdrop-filter: blur(24px) saturate(200%);
+	border: 1px solid oklch(1 0 0 / 40%);
+	box-shadow: 
+		0 8px 32px oklch(0 0 0 / 15%),
+		inset 0 1px 0 oklch(1 0 0 / 50%);
+}
+
+.dark .glass-strong {
+	background: oklch(0.15 0 0 / 70%);
+	border: 1px solid oklch(1 0 0 / 15%);
+}
+
+@keyframes float {
+	0%, 100% { transform: translateY(0) rotate(0deg); }
+	50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@keyframes gentle-float {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+	0%, 100% { 
+		opacity: 0.8;
+		filter: blur(0px);
+	}
+	50% { 
+		opacity: 1;
+		filter: blur(2px);
+	}
+}
+
+@keyframes shimmer {
+	0% { background-position: -200% center; }
+	100% { background-position: 200% center; }
+}
+
+@keyframes breathe {
+	0%, 100% { transform: scale(1); opacity: 0.9; }
+	50% { transform: scale(1.02); opacity: 1; }
+}
+
+@keyframes gradient-shift {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+@keyframes rain-fall {
+	0% { transform: translateY(-100%) translateX(0); opacity: 0; }
+	10% { opacity: 1; }
+	90% { opacity: 0.8; }
+	100% { transform: translateY(100vh) translateX(20px); opacity: 0; }
+}
+
+@keyframes snow-fall {
+	0% { transform: translateY(-100%) translateX(0) rotate(0deg); opacity: 0; }
+	10% { opacity: 1; }
+	100% { transform: translateY(100vh) translateX(50px) rotate(360deg); opacity: 0; }
+}
+
+@keyframes lightning-flash {
+	0%, 90%, 100% { opacity: 0; }
+	92%, 94%, 96% { opacity: 1; }
+	93%, 95% { opacity: 0.5; }
+}
+
+.animate-float {
+	animation: float 6s ease-in-out infinite;
+}
+
+.animate-gentle-float {
+	animation: gentle-float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+	animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		oklch(1 0 0 / 20%) 50%,
+		transparent 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 2s linear infinite;
+}
+
+.animate-breathe {
+	animation: breathe 4s ease-in-out infinite;
+}
+
+.animate-gradient {
+	background-size: 200% 200%;
+	animation: gradient-shift 8s ease infinite;
+}
+
+.weather-gradient-clear {
+	background: linear-gradient(
+		135deg,
+		var(--sky-clear-start) 0%,
+		var(--sky-clear-mid) 50%,
+		var(--sun-glow) 100%
+	);
+	background-size: 200% 200%;
+	animation: gradient-shift 15s ease infinite;
+}
+
+.weather-gradient-cloudy {
+	background: linear-gradient(
+		135deg,
+		oklch(0.75 0.04 240) 0%,
+		oklch(0.65 0.05 250) 50%,
+		oklch(0.58 0.06 255) 100%
+	);
+	background-size: 200% 200%;
+	animation: gradient-shift 20s ease infinite;
+}
+
+.weather-gradient-rain {
+	background: linear-gradient(
+		135deg,
+		oklch(0.55 0.08 250) 0%,
+		oklch(0.45 0.1 260) 50%,
+		oklch(0.38 0.08 265) 100%
+	);
+	background-size: 200% 200%;
+	animation: gradient-shift 12s ease infinite;
+}
+
+.weather-gradient-storm {
+	background: linear-gradient(
+		135deg,
+		oklch(0.35 0.06 270) 0%,
+		oklch(0.25 0.08 280) 50%,
+		oklch(0.18 0.1 290) 100%
+	);
+	background-size: 200% 200%;
+	animation: gradient-shift 8s ease infinite;
+}
+
+.weather-gradient-snow {
+	background: linear-gradient(
+		135deg,
+		oklch(0.92 0.02 240) 0%,
+		oklch(0.85 0.04 250) 50%,
+		oklch(0.78 0.06 260) 100%
+	);
+	background-size: 200% 200%;
+	animation: gradient-shift 18s ease infinite;
+}
+
+.dark .weather-gradient-clear {
+	background: linear-gradient(
+		135deg,
+		oklch(0.15 0.1 270) 0%,
+		oklch(0.1 0.08 260) 50%,
+		oklch(0.08 0.06 250) 100%
+	);
+}
+
+.dark .weather-gradient-cloudy {
+	background: linear-gradient(
+		135deg,
+		oklch(0.2 0.04 260) 0%,
+		oklch(0.15 0.03 255) 50%,
+		oklch(0.12 0.02 250) 100%
+	);
+}
+
+.dark .weather-gradient-rain {
+	background: linear-gradient(
+		135deg,
+		oklch(0.18 0.06 270) 0%,
+		oklch(0.12 0.05 275) 50%,
+		oklch(0.08 0.04 280) 100%
+	);
+}
+
+.dark .weather-gradient-storm {
+	background: linear-gradient(
+		135deg,
+		oklch(0.1 0.04 280) 0%,
+		oklch(0.06 0.03 285) 50%,
+		oklch(0.04 0.02 290) 100%
+	);
+}
+
+.dark .weather-gradient-snow {
+	background: linear-gradient(
+		135deg,
+		oklch(0.25 0.03 250) 0%,
+		oklch(0.18 0.02 260) 50%,
+		oklch(0.12 0.02 270) 100%
+	);
+}
+
+.glow-warm {
+	box-shadow: 
+		0 0 20px oklch(0.85 0.2 70 / 40%),
+		0 0 40px oklch(0.8 0.15 60 / 20%);
+}
+
+.glow-cool {
+	box-shadow:
+		0 0 20px oklch(0.7 0.15 240 / 40%),
+		0 0 40px oklch(0.6 0.1 250 / 20%);
+}
+
+.glow-focus {
+	box-shadow:
+		0 0 0 3px oklch(0.7 0.18 250 / 30%),
+		0 0 20px oklch(0.6 0.15 255 / 20%);
+}
+
+.transition-weather {
+	transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-smooth {
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

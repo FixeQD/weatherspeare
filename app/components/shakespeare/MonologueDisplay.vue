@@ -1,6 +1,10 @@
+```
 <template>
-	<Card ref="cardRef" v-if="monologue" class="transition-all duration-300 hover:shadow-lg">
-		<CardHeader>
+	<Card
+		ref="cardRef"
+		v-if="monologue"
+		class="glass-strong overflow-hidden rounded-2xl border-0 shadow-xl transition-all duration-300 hover:shadow-2xl">
+		<CardHeader class="relative pb-2">
 			<CardTitle class="flex items-center gap-2">
 				<Theater class="h-5 w-5" />
 				<span>Shakespearean Monologue</span>

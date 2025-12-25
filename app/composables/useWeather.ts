@@ -15,38 +15,55 @@ export function useWeather() {
 		try {
 			const config = useRuntimeConfig()
 			const response = await axios.get(
-				`http://api.weatherapi.com/v1/current.json?key=${config.public.WEATHER_API_KEY}&q=${city}&aqi=no`
+				`http://api.weatherapi.com/v1/forecast.json?key=${config.public.WEATHER_API_KEY}&q=${city}&days=1&aqi=no&alerts=no`
 			)
+
+			const location = response.data.location
+			const current = response.data.current
+			const astro = response.data.forecast.forecastday[0].astro
+
 			weatherData.value = {
-				name: response.data.location.name,
+				name: location.name,
 				sys: {
-					country: response.data.location.country,
-					sunrise: 0,
-					sunset: 0,
+					country: location.country,
+					sunrise: astro.sunrise,
+					sunset: astro.sunset,
 				},
 				weather: [
 					{
-						main: response.data.current.condition.text,
-						description: response.data.current.condition.text,
+						main: current.condition.text,
+						description: current.condition.text,
 					},
 				],
 				main: {
-					temp: response.data.current.temp_c,
-					feels_like: response.data.current.feelslike_c,
-					humidity: response.data.current.humidity,
-					temp_min: response.data.current.temp_c,
-					temp_max: response.data.current.temp_c,
-					pressure: response.data.current.pressure_mb,
+					temp: current.temp_c,
+					feels_like: current.feelslike_c,
+					humidity: current.humidity,
+					temp_min: current.temp_c,
+					temp_max: current.temp_c,
+					pressure: current.pressure_mb,
 				},
 				wind: {
-					speed: response.data.current.wind_kph / 3.6, // Convert km/h to m/s
-					deg: response.data.current.wind_degree,
+					speed: current.wind_kph / 3.6,
+					deg: current.wind_degree,
 				},
-				clouds: { all: response.data.current.cloud },
-				visibility: response.data.current.vis_km * 1000, // Convert km to meters
-				dt: response.data.current.last_updated_epoch,
-				timezone: 0,
-				coord: { lat: response.data.location.lat, lon: response.data.location.lon },
+				clouds: { all: current.cloud },
+				visibility: current.vis_km * 1000,
+				dt: current.last_updated_epoch,
+				timezone: location.tz_id,
+				coord: { lat: location.lat, lon: location.lon },
+				isDay: current.is_day === 1,
+				astro: {
+					sunrise: astro.sunrise,
+					sunset: astro.sunset,
+					moonrise: astro.moonrise,
+					moonset: astro.moonset,
+					moonPhase: astro.moon_phase,
+					moonIllumination: astro.moon_illumination,
+					isMoonUp: astro.is_moon_up === 1,
+					isSunUp: astro.is_sun_up === 1,
+				},
+				localtime: location.localtime,
 			}
 		} catch (err) {
 			error.value = err instanceof Error ? err.message : 'Failed to fetch weather data'

@@ -19,25 +19,9 @@ const container = ref<HTMLElement | null>(null)
 let snowTexture: THREE.Texture | null = null
 let rainTexture: THREE.Texture | null = null
 
-const createParticleTexture = (type: 'snow' | 'rain', size = 64, dark = isDark.value) => {
+const createParticleTexture = (type: 'snow' | 'rain' | 'glow', size = 64, dark = isDark.value) => {
 	const canvas = document.createElement('canvas')
-	if (type === 'snow') {
-		canvas.width = size
-		canvas.height = size
-		const ctx = canvas.getContext('2d')!
-		const grd = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-		if (dark) {
-			grd.addColorStop(0, 'rgba(220,230,240,0.95)')
-			grd.addColorStop(0.6, 'rgba(200,220,230,0.5)')
-			grd.addColorStop(1, 'rgba(200,220,230,0)')
-		} else {
-			grd.addColorStop(0, 'rgba(255,255,255,1)')
-			grd.addColorStop(0.6, 'rgba(240,240,255,0.6)')
-			grd.addColorStop(1, 'rgba(240,240,255,0)')
-		}
-		ctx.fillStyle = grd
-		ctx.fillRect(0, 0, size, size)
-	} else {
+	if (type === 'rain') {
 		canvas.width = Math.max(6, Math.floor(size / 6))
 		canvas.height = size
 		const ctx = canvas.getContext('2d')!
@@ -53,6 +37,27 @@ const createParticleTexture = (type: 'snow' | 'rain', size = 64, dark = isDark.v
 		}
 		ctx.fillStyle = grad
 		ctx.fillRect(0, 0, canvas.width, canvas.height)
+	} else {
+		canvas.width = size
+		canvas.height = size
+		const ctx = canvas.getContext('2d')!
+		const grd = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
+		
+		if (type === 'glow') {
+			grd.addColorStop(0, 'rgba(255,255,255,1)')
+			grd.addColorStop(0.4, 'rgba(255,255,255,0.4)')
+			grd.addColorStop(1, 'rgba(255,255,255,0)')
+		} else if (dark) {
+			grd.addColorStop(0, 'rgba(220,230,240,0.95)')
+			grd.addColorStop(0.6, 'rgba(200,220,230,0.5)')
+			grd.addColorStop(1, 'rgba(200,220,230,0)')
+		} else {
+			grd.addColorStop(0, 'rgba(255,255,255,1)')
+			grd.addColorStop(0.6, 'rgba(240,240,255,0.6)')
+			grd.addColorStop(1, 'rgba(240,240,255,0)')
+		}
+		ctx.fillStyle = grd
+		ctx.fillRect(0, 0, size, size)
 	}
 	const tex = new THREE.CanvasTexture(canvas)
 	tex.minFilter = THREE.LinearFilter
@@ -340,21 +345,26 @@ const createSunnyElements = () => {
 
 	const baseCount = props.weatherType === 'partly' ? 50 : 30
 	const particleCount = Math.max(15, Math.floor(baseCount * props.intensity))
-	for (let i = 0; i < particleCount; i++) {
-		const size = 1.5 * props.particleSize + Math.random() * 4
-		const particleGeometry = new THREE.SphereGeometry(size, 16, 16)
+	
+	const glowTexture = createParticleTexture('glow', 64)
 
+	for (let i = 0; i < particleCount; i++) {
 		const hue = 0.1 + Math.random() * 0.05
 		const saturation = 0.8 + Math.random() * 0.2
 		const lightness = 0.7 + Math.random() * 0.2
 		const particleColor = new THREE.Color().setHSL(hue, saturation, lightness)
 
-		const particleMaterial = new THREE.MeshBasicMaterial({
+		const particleMaterial = new THREE.SpriteMaterial({
+			map: glowTexture,
 			color: particleColor,
 			transparent: true,
 			opacity: 0.5 + Math.random() * 0.4,
+			blending: THREE.AdditiveBlending,
 		})
-		const particle = new THREE.Mesh(particleGeometry, particleMaterial)
+		const particle = new THREE.Sprite(particleMaterial)
+
+		const size = 1.0 * props.particleSize + Math.random() * 2
+		particle.scale.set(size, size, 1)
 
 		particle.position.set(
 			Math.random() * (container.value.clientWidth || 800) -
@@ -750,11 +760,14 @@ const animate = () => {
 	}
 
 	scene.children.forEach((obj) => {
-		if (obj.type === 'Mesh' && obj.userData.originalPosition) {
+		if ((obj.type === 'Mesh' || obj.type === 'Sprite') && obj.userData.originalPosition) {
 			const originalPosition = obj.userData.originalPosition
 			const speed = obj.userData.speed
 			const phase = obj.userData.phase
-
+			
+			const windX = (props.wind?.x || 0) * 20
+			
+			obj.position.x = originalPosition.x + Math.sin(phase + Date.now() * 0.0005) * 5 + windX
 			obj.position.y = originalPosition.y + Math.sin(phase + Date.now() * 0.001 * speed) * 10
 			obj.userData.phase += 0.01
 		}

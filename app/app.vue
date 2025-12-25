@@ -1,9 +1,14 @@
 <template>
 	<div class="relative min-h-screen overflow-hidden">
+		<div
+			class="fixed inset-0 z-0 transition-weather"
+			:class="weatherGradientClass"></div>
+
 		<ClientOnly>
 			<ThreeScene
 				v-if="show3DScene"
 				:weather-type="currentWeatherType"
+				:is-night="isNightAtLocation"
 				:debug-border="false"
 				@scene-ready="onSceneReady" />
 
@@ -18,8 +23,7 @@
 			</Suspense>
 		</ClientOnly>
 
-		<div
-			class="relative min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 transition-colors duration-300 dark:from-gray-900 dark:to-gray-800">
+		<div class="relative z-30 min-h-screen">
 			<div class="container mx-auto px-4 py-8">
 				<WeatherHeader />
 
@@ -47,7 +51,6 @@
 </template>
 
 <script setup lang="ts">
-h
 import WeatherHeader from './components/weather/WeatherHeader.vue'
 import WeatherSearchSection from './components/weather/WeatherSearch.vue'
 import WeatherMainDisplay from './components/weather/WeatherDisplay.vue'
@@ -90,6 +93,26 @@ const currentWeatherType = computed(() => {
 	return mapWeatherTo3DType(weatherStore.weatherData.weather[0].main)
 })
 
+const weatherGradientClass = computed(() => {
+	const type = currentWeatherType.value
+	const gradientMap: Record<string, string> = {
+		clear: 'weather-gradient-clear',
+		partly: 'weather-gradient-cloudy',
+		cloudy: 'weather-gradient-cloudy',
+		rain: 'weather-gradient-rain',
+		storm: 'weather-gradient-storm',
+		snow: 'weather-gradient-snow',
+	}
+	return gradientMap[type] || 'weather-gradient-clear'
+})
+
+const isNightAtLocation = computed(() => {
+	const data = weatherStore.weatherData
+	if (!data) return false
+
+	return data.isDay === false
+})
+
 const onSceneReady = () => {
 	sceneReady.value = true
 }
@@ -102,6 +125,20 @@ watch(
 		}
 	},
 	{ deep: true }
+)
+
+watch(
+	isNightAtLocation,
+	(isNight) => {
+		if (import.meta.client) {
+			if (isNight) {
+				document.documentElement.classList.add('dark')
+			} else {
+				document.documentElement.classList.remove('dark')
+			}
+		}
+	},
+	{ immediate: true }
 )
 </script>
 
