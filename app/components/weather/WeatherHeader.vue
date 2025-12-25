@@ -1,38 +1,83 @@
 <template>
 	<header class="mb-8 text-center">
-		<h1 class="mb-2 text-4xl font-bold text-gray-900 dark:text-white">Weatherspeare</h1>
+		<div class="mb-4 flex items-center justify-center gap-2">
+			<Cloud class="h-8 w-8 text-blue-500" />
+			<h1 class="text-4xl font-bold text-gray-900 dark:text-white">Weatherspeare</h1>
+		</div>
 		<p class="text-lg text-gray-600 dark:text-gray-300">
 			Transform daily weather forecasts into Shakespearean monologues
 		</p>
 
-		<div class="mt-4 flex items-center justify-center gap-4">
-			<button
-				@click="toggleTheme"
-				class="rounded-full bg-white/20 p-2 transition-colors hover:bg-white/30 dark:bg-gray-700/20 dark:hover:bg-gray-700/30"
-				title="Toggle dark mode">
-				<Sun v-if="isDark" class="h-5 w-5 text-yellow-500" />
-				<Moon v-else class="h-5 w-5 text-blue-500" />
-			</button>
+		<div class="mt-6 flex items-center justify-center gap-4">
+			<Badge variant="outline" class="gap-1">
+				<Sun class="h-4 w-4" />
+				<span>{{ currentDate }}</span>
+			</Badge>
 
-			<button
+			<DropdownMenu>
+				<DropdownMenuTrigger as-child>
+					<Button variant="outline" size="icon" class="rounded-full">
+						<Sun v-if="isDark" class="h-5 w-5 text-yellow-500" />
+						<Moon v-else class="h-5 w-5 text-blue-500" />
+						<span class="sr-only">Toggle theme</span>
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end">
+					<DropdownMenuItem @click="toggleTheme">
+						<Sun class="mr-2 h-4 w-4" />
+						<span>Light Mode</span>
+					</DropdownMenuItem>
+					<DropdownMenuItem @click="toggleTheme">
+						<Moon class="mr-2 h-4 w-4" />
+						<span>Dark Mode</span>
+					</DropdownMenuItem>
+					<DropdownMenuItem @click="toggleTheme">
+						<Laptop class="mr-2 h-4 w-4" />
+						<span>System</span>
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+
+			<Button
 				@click="handleGeo"
-				class="rounded-full bg-white/20 p-2 transition-colors hover:bg-white/30 dark:bg-gray-700/20 dark:hover:bg-gray-700/30"
+				variant="outline"
+				size="icon"
+				class="rounded-full"
 				title="Use current location"
 				:disabled="geoLoading">
 				<Compass v-if="!geoLoading" class="h-5 w-5" />
 				<Loader2 v-else class="h-5 w-5 animate-spin" />
-			</button>
+				<span class="sr-only">Use current location</span>
+			</Button>
 		</div>
 	</header>
 </template>
 
 <script setup lang="ts">
-import { Sun, Moon, Compass, Loader2 } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Sun, Moon, Compass, Loader2, Laptop, Cloud } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useTheme } from '@/composables/useTheme'
 import { useGeolocation } from '@/composables/useGeolocation'
 
 const { isDark, toggleTheme } = useTheme()
 const { geoLoading, fetchCurLoc } = useGeolocation()
+
+const currentDate = computed(() => {
+	return new Date().toLocaleDateString('en-US', {
+		weekday: 'long',
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric',
+	})
+})
 
 const handleGeo = async () => {
 	try {

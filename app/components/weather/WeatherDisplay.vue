@@ -1,11 +1,26 @@
 <template>
 	<div class="space-y-6">
 		<!-- Current Weather Card -->
-		<Card v-if="weatherData" class="overflow-hidden">
+		<Card v-if="weatherData" class="overflow-hidden shadow-lg">
 			<div
-				class="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
-				<div class="absolute inset-0 bg-black/10" />
-				<div class="relative z-10">
+				class="relative overflow-hidden p-0 text-white"
+				:class="getWeatherGradient(weatherData.weather[0].main)">
+				<!-- Weather background animation -->
+				<div class="absolute inset-0 opacity-20">
+					<div
+						v-for="i in 5"
+						:key="i"
+						class="animate-float absolute rounded-full bg-white/30"
+						:style="{
+							width: `${Math.random() * 50 + 20}px`,
+							height: `${Math.random() * 50 + 20}px`,
+							top: `${Math.random() * 100}%`,
+							left: `${Math.random() * 100}%`,
+							animationDelay: `${i * 0.5}s`,
+						}"></div>
+				</div>
+
+				<div class="relative z-10 p-6">
 					<div class="flex items-start justify-between">
 						<div>
 							<h2 class="text-3xl font-bold">
@@ -18,7 +33,7 @@
 							<div class="flex items-center gap-2">
 								<IconWrapper
 									:icon="getWeatherIcon(weatherData.weather[0].main)"
-									class="h-8 w-8" />
+									class="h-10 w-10" />
 								<span class="text-2xl font-semibold">{{
 									weatherData.weather[0].main
 								}}</span>
@@ -39,9 +54,13 @@
 							</div>
 						</div>
 						<div class="text-right">
-							<div class="text-lg">Humidity: {{ weatherData.main.humidity }}%</div>
-							<div class="text-lg">
-								Wind: {{ Math.round(weatherData.wind.speed * 3.6) }} km/h
+							<div class="flex items-center gap-2">
+								<Droplet class="h-5 w-5" />
+								<span>{{ weatherData.main.humidity }}%</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<Wind class="h-5 w-5" />
+								<span>{{ Math.round(weatherData.wind.speed * 3.6) }} km/h</span>
 							</div>
 						</div>
 					</div>
@@ -79,9 +98,25 @@
 	</div>
 </template>
 
+<style scoped>
+.animate-float {
+	animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+	0%,
+	100% {
+		transform: translateY(0px);
+	}
+	50% {
+		transform: translateY(-20px);
+	}
+}
+</style>
+
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CloudOff } from 'lucide-vue-next'
+import { CloudOff, Droplet, Wind } from 'lucide-vue-next'
 import { Card, CardContent } from '@/components/ui/card'
 import WeatherDetails from './WeatherDetails.vue'
 import WeatherError from './WeatherError.vue'
@@ -113,6 +148,21 @@ const formattedTime = computed(() => {
 		minute: '2-digit',
 	})
 })
+
+const getWeatherGradient = (condition: string) => {
+	const gradients: Record<string, string> = {
+		Clear: 'bg-gradient-to-r from-yellow-400 to-orange-500',
+		Clouds: 'bg-gradient-to-r from-blue-300 to-gray-400',
+		Rain: 'bg-gradient-to-r from-blue-500 to-cyan-600',
+		Thunderstorm: 'bg-gradient-to-r from-gray-700 to-blue-900',
+		Snow: 'bg-gradient-to-r from-blue-200 to-cyan-300',
+		Drizzle: 'bg-gradient-to-r from-blue-400 to-gray-500',
+		Mist: 'bg-gradient-to-r from-gray-300 to-gray-500',
+		Fog: 'bg-gradient-to-r from-gray-300 to-gray-500',
+		Haze: 'bg-gradient-to-r from-yellow-200 to-orange-300',
+	}
+	return gradients[condition] || 'bg-gradient-to-r from-blue-500 to-cyan-600'
+}
 
 const getWeatherIcon = (condition: string) => {
 	const icons: Record<string, string> = {

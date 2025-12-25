@@ -10,15 +10,18 @@
 				<CardDescription>Weather outlook for the next days</CardDescription>
 			</CardHeader>
 			<CardContent>
+				<Alert v-if="forecastError" variant="destructive">
+					<AlertTitle>Forecast Error</AlertTitle>
+					<AlertDescription>{{ forecastError }}</AlertDescription>
+					<Button @click="fetchForecast" variant="outline" size="sm" class="mt-2">
+						<RefreshCw class="mr-2 h-4 w-4" />
+						Retry
+					</Button>
+				</Alert>
+
 				<div v-if="forecastLoading" class="py-8 text-center">
 					<LoadingSpinner class="mx-auto mb-4" />
 					<p class="text-gray-600 dark:text-gray-300">Loading forecast...</p>
-				</div>
-				<div v-else-if="forecastError" class="py-8 text-center text-red-500">
-					<p>{{ forecastError }}</p>
-					<Button @click="fetchForecast" variant="outline" size="sm" class="mt-2">
-						Retry
-					</Button>
 				</div>
 				<div v-else class="space-y-4">
 					<div
@@ -39,7 +42,10 @@
 								{{ Math.round(day.temp.max) }}° / {{ Math.round(day.temp.min) }}°
 							</div>
 							<div class="text-sm text-gray-500 dark:text-gray-400">
-								{{ Math.round(day.pop * 100) }}% rain
+								<Badge variant="outline" class="gap-1">
+									<Umbrella class="h-3 w-3" />
+									{{ Math.round(day.pop * 100) }}% rain
+								</Badge>
 							</div>
 						</div>
 					</div>
@@ -77,9 +83,9 @@
 							<div class="font-semibold">
 								{{ Math.round(historyItem.main.temp) }}°C
 							</div>
-							<div class="text-sm text-gray-500 dark:text-gray-400">
+							<Badge variant="secondary" class="mt-1">
 								{{ historyItem.weather[0].main }}
-							</div>
+							</Badge>
 						</div>
 					</div>
 				</div>
@@ -97,28 +103,21 @@
 			</CardHeader>
 			<CardContent>
 				<div class="space-y-4">
-					<div
-						v-if="weatherData"
-						class="flex items-start gap-3 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
-						<Lightbulb class="mt-1 h-5 w-5 flex-shrink-0 text-blue-500" />
-						<div>
-							<h4 class="mb-1 font-semibold">Today's Recommendation</h4>
-							<p class="text-sm text-gray-600 dark:text-gray-300">
-								{{ getWeatherRecommendation() }}
-							</p>
-						</div>
-					</div>
+					<Alert v-if="weatherData" class="bg-blue-50 dark:bg-blue-900/20">
+						<Lightbulb class="h-5 w-5 text-blue-500" />
+						<AlertTitle>Today's Recommendation</AlertTitle>
+						<AlertDescription>
+							{{ getWeatherRecommendation() }}
+						</AlertDescription>
+					</Alert>
 
-					<div
-						class="flex items-start gap-3 rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
-						<Leaf class="mt-1 h-5 w-5 flex-shrink-0 text-green-500" />
-						<div>
-							<h4 class="mb-1 font-semibold">Air Quality</h4>
-							<p class="text-sm text-gray-600 dark:text-gray-300">
-								Check local air quality for outdoor activities
-							</p>
-						</div>
-					</div>
+					<Alert class="bg-green-50 dark:bg-green-900/20">
+						<Leaf class="h-5 w-5 text-green-500" />
+						<AlertTitle>Air Quality</AlertTitle>
+						<AlertDescription>
+							Check local air quality for outdoor activities
+						</AlertDescription>
+					</Alert>
 				</div>
 			</CardContent>
 		</Card>
@@ -127,9 +126,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { Calendar, History, Info, Lightbulb, Leaf } from 'lucide-vue-next'
+import { Calendar, History, Info, Lightbulb, Leaf, RefreshCw, Umbrella } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import LoadingSpinner from '../shared/LoadingSpinner.vue'
 import IconWrapper from '../shared/IconWrapper.vue'
 import { useWeatherStore } from '@/stores/weatherStore'
