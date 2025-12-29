@@ -1,8 +1,6 @@
 <template>
 	<div class="relative min-h-screen overflow-hidden">
-		<div
-			class="fixed inset-0 z-0 transition-weather"
-			:class="weatherGradientClass"></div>
+		<div class="transition-weather fixed inset-0 z-0" :class="weatherGradientClass"></div>
 
 		<ClientOnly>
 			<ThreeScene
@@ -16,7 +14,13 @@
 				<WeatherElements
 					v-if="show3DScene"
 					:weather-type="currentWeatherType"
-					:debug-border="false" />
+					:debug-border="false"
+					:sun-position="sunPosition"
+					:moon-position="moonPosition"
+					:is-sun-up="isSunUp"
+					:is-moon-up="isMoonUp"
+					:moon-phase="moonPhase"
+					:moon-illumination="moonIllumination" />
 				<template #fallback>
 					<div></div>
 				</template>
@@ -59,7 +63,19 @@ import MonologueSection from './components/shakespeare/MonologueDisplay.vue'
 import WeatherFooter from './components/shared/WeatherFooter.vue'
 import ThreeScene from './components/3D/ThreeScene.vue'
 
+import { useAstronomy } from './composables/useAstronomy'
+import { useTheme } from './composables/useTheme'
+
 const weatherStore = useWeatherStore()
+const { setAstronomyData, getSunProgress, getMoonProgress, astronomyData } = useAstronomy()
+const { isDark } = useTheme()
+
+const sunPosition = ref(0)
+const moonPosition = ref(0)
+const isSunUp = ref(true)
+const isMoonUp = ref(false)
+const moonPhase = ref('Full Moon')
+const moonIllumination = ref(100)
 
 const WeatherElements = defineAsyncComponent(() => import('./components/3D/WeatherElements.vue'))
 const show3DScene = ref(true)
@@ -120,21 +136,58 @@ const onSceneReady = () => {
 watch(
 	() => weatherStore.weatherData,
 	(newWeatherData) => {
-		if (newWeatherData && sceneReady.value) {
-			console.debug('Weather changed, updating 3D scene')
+		if (newWeatherData) {
+			if (sceneReady.value) console.debug('Weather changed, updating 3D scene')
+
+			if (newWeatherData.astro) {
+				setAstronomyData({
+					sunrise: newWeatherData.astro.sunrise,
+					sunset: newWeatherData.astro.sunset,
+					moonrise: newWeatherData.astro.moonrise,
+					moonset: newWeatherData.astro.moonset,
+					moonPhase: newWeatherData.astro.moonPhase,
+					moonIllumination: newWeatherData.astro.moonIllumination,
+					isMoonUp: newWeatherData.astro.isMoonUp,
+					isSunUp: newWeatherData.astro.isSunUp,
+					isDay: newWeatherData.isDay,
+					localtime: newWeatherData.localtime,
+					localtimeEpoch: newWeatherData.dt, // approx
+				})
+
+				sunPosition.value = getSunProgress()
+				moonPosition.value = getMoonProgress()
+				isSunUp.value = newWeatherData.astro.isSunUp
+				isMoonUp.value = newWeatherData.astro.isMoonUp
+				moonPhase.value = newWeatherData.astro.moonPhase
+				moonIllumination.value = newWeatherData.astro.moonIllumination
+
+				// Recalculate periodically just in case
+			}
 		}
 	},
-	{ deep: true }
+	{ deep: true, immediate: true }
 )
 
 watch(
 	isNightAtLocation,
 	(isNight) => {
 		if (import.meta.client) {
-			if (isNight) {
-				document.documentElement.classList.add('dark')
+			const updateTheme = () => {
+				console.debug('Theme switching to:', isNight ? 'dark' : 'light')
+				isDark.value = isNight
+				if (isNight) {
+					document.documentElement.classList.add('dark')
+				} else {
+					document.documentElement.classList.remove('dark')
+				}
+			}
+
+			// @ts-ignore
+			if (document.startViewTransition) {
+				// @ts-ignore
+				document.startViewTransition(updateTheme)
 			} else {
-				document.documentElement.classList.remove('dark')
+				updateTheme()
 			}
 		}
 	},

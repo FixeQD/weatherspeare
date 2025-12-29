@@ -82,8 +82,5 @@ const handleSubmit = async () => {
 	}
 
 	await weatherStore.fetchWeather(city.value.trim())
-	if (weatherStore.weatherData) {
-		await weatherStore.generateMonologue()
-	}
 }
 </script>

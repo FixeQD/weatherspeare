@@ -10,114 +10,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import * as THREE from 'three'
 import { useTheme } from '~/composables/useTheme'
+import { useWeatherTextures } from '~/composables/3D/useWeatherTextures'
+import { useCelestialBodies } from '~/composables/3D/useCelestialBodies'
+
 const { isDark } = useTheme()
+const { createParticleTexture, createCloudTexture, createLightningGeometry } = useWeatherTextures()
+const { updateCelestialBodies: updateBodies } = useCelestialBodies()
 
 const container = ref<HTMLElement | null>(null)
 let snowTexture: THREE.Texture | null = null
 let rainTexture: THREE.Texture | null = null
-
-const createParticleTexture = (type: 'snow' | 'rain' | 'glow', size = 64, dark = isDark.value) => {
-	const canvas = document.createElement('canvas')
-	if (type === 'rain') {
-		canvas.width = Math.max(6, Math.floor(size / 6))
-		canvas.height = size
-		const ctx = canvas.getContext('2d')!
-		const grad = ctx.createLinearGradient(0, 0, 0, canvas.height)
-		if (dark) {
-			grad.addColorStop(0, 'rgba(120,140,150,0.95)')
-			grad.addColorStop(0.5, 'rgba(120,140,150,0.6)')
-			grad.addColorStop(1, 'rgba(120,140,150,0)')
-		} else {
-			grad.addColorStop(0, 'rgba(200,220,255,0.95)')
-			grad.addColorStop(0.5, 'rgba(200,220,255,0.7)')
-			grad.addColorStop(1, 'rgba(200,220,255,0)')
-		}
-		ctx.fillStyle = grad
-		ctx.fillRect(0, 0, canvas.width, canvas.height)
-	} else {
-		canvas.width = size
-		canvas.height = size
-		const ctx = canvas.getContext('2d')!
-		const grd = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-		
-		if (type === 'glow') {
-			grd.addColorStop(0, 'rgba(255,255,255,1)')
-			grd.addColorStop(0.4, 'rgba(255,255,255,0.4)')
-			grd.addColorStop(1, 'rgba(255,255,255,0)')
-		} else if (dark) {
-			grd.addColorStop(0, 'rgba(220,230,240,0.95)')
-			grd.addColorStop(0.6, 'rgba(200,220,230,0.5)')
-			grd.addColorStop(1, 'rgba(200,220,230,0)')
-		} else {
-			grd.addColorStop(0, 'rgba(255,255,255,1)')
-			grd.addColorStop(0.6, 'rgba(240,240,255,0.6)')
-			grd.addColorStop(1, 'rgba(240,240,255,0)')
-		}
-		ctx.fillStyle = grd
-		ctx.fillRect(0, 0, size, size)
-	}
-	const tex = new THREE.CanvasTexture(canvas)
-	tex.minFilter = THREE.LinearFilter
-	tex.magFilter = THREE.LinearFilter
-	tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping
-	tex.needsUpdate = true
-	return tex
-}
-
-const createCloudTexture = (size = 128, dark = isDark.value) => {
-	const canvas = document.createElement('canvas')
-	canvas.width = size
-	canvas.height = size
-	const ctx = canvas.getContext('2d')!
-
-	const imageData = ctx.createImageData(size, size)
-	const data = imageData.data
-
-	for (let i = 0; i < data.length; i += 4) {
-		const x = (i / 4) % size
-		const y = Math.floor(i / 4 / size)
-
-		const noise =
-			Math.sin(x * 0.1) * Math.cos(y * 0.1) * 0.5 +
-			Math.sin(x * 0.05 + y * 0.03) * 0.3 +
-			Math.random() * 0.2
-
-		const value = (noise + 1) * 0.5
-		const alpha = value * 0.8 + 0.2
-
-		data[i] = dark ? 180 : 240
-		data[i + 1] = dark ? 190 : 245
-		data[i + 2] = dark ? 200 : 250
-		data[i + 3] = alpha * 255
-	}
-
-	ctx.putImageData(imageData, 0, 0)
-
-	const tex = new THREE.CanvasTexture(canvas)
-	tex.minFilter = THREE.LinearFilter
-	tex.magFilter = THREE.LinearFilter
-	tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-	tex.needsUpdate = true
-	return tex
-}
-
-const createLightningGeometry = () => {
-	const geometry = new THREE.BufferGeometry()
-	const points = []
-	const segments = 5 + Math.floor(Math.random() * 10)
-
-	for (let i = 0; i < segments; i++) {
-		const x = Math.random() * 40 - 20
-		const y = -100 + i * 20 + Math.random() * 15
-		points.push(new THREE.Vector3(x, y, 0))
-	}
-
-	geometry.setFromPoints(points)
-	return geometry
-}
+let splashTexture: THREE.Texture | null = null
 
 let scene: THREE.Scene
 let camera: THREE.OrthographicCamera
@@ -169,6 +75,30 @@ const props = defineProps({
 		type: Object as () => { text: string; icon: string } | null,
 		default: null,
 	},
+	sunPosition: {
+		type: Number,
+		default: 0, // 0 = sunrise, 0.5 = zenith, 1 = sunset
+	},
+	moonPosition: {
+		type: Number,
+		default: 0,
+	},
+	isSunUp: {
+		type: Boolean,
+		default: true,
+	},
+	isMoonUp: {
+		type: Boolean,
+		default: false,
+	},
+	moonPhase: {
+		type: String,
+		default: 'Full Moon',
+	},
+	moonIllumination: {
+		type: Number,
+		default: 100,
+	},
 })
 
 const emit = defineEmits(['element-clicked'])
@@ -212,6 +142,12 @@ const initScene = () => {
 		}
 
 		createInteractiveElements()
+		watch(
+			() => [props.sunPosition, props.moonPosition, props.isSunUp, props.isMoonUp],
+			() => {
+				updateCelestialBodies()
+			}
+		)
 
 		clock = new THREE.Clock()
 		animate()
@@ -315,6 +251,8 @@ const createInteractiveElements = () => {
 
 	applyFogForWeather(props.weatherType)
 
+	updateCelestialBodies()
+
 	switch (props.weatherType) {
 		case 'clear':
 			createSunnyElements()
@@ -340,12 +278,28 @@ const createInteractiveElements = () => {
 	}
 }
 
+const updateCelestialBodies = () => {
+	if (!scene || !container.value) return
+
+	const width = container.value.clientWidth || 800
+	const height = container.value.clientHeight || 600
+
+	updateBodies(scene, width, height, {
+		sunPosition: props.sunPosition,
+		moonPosition: props.moonPosition,
+		isSunUp: props.isSunUp,
+		isMoonUp: props.isMoonUp,
+		moonPhase: props.moonPhase,
+		moonIllumination: props.moonIllumination,
+	})
+}
+
 const createSunnyElements = () => {
 	if (!container.value) return
 
 	const baseCount = props.weatherType === 'partly' ? 50 : 30
 	const particleCount = Math.max(15, Math.floor(baseCount * props.intensity))
-	
+
 	const glowTexture = createParticleTexture('glow', 64)
 
 	for (let i = 0; i < particleCount; i++) {
@@ -456,6 +410,40 @@ const createRainyElements = () => {
 		puddle.rotation.x = Math.PI / 2
 		scene.add(puddle)
 	}
+	const splashCount = 150
+	const splashGeometry = new THREE.BufferGeometry()
+	const splashPositions = new Float32Array(splashCount * 3)
+	const splashSizes = new Float32Array(splashCount)
+	const splashAlphas = new Float32Array(splashCount)
+
+	for (let i = 0; i < splashCount; i++) {
+		splashPositions[i * 3] = Math.random() * width - width / 2
+		splashPositions[i * 3 + 1] = -height / 2 + Math.random() * 20
+		splashPositions[i * 3 + 2] = 10
+		splashSizes[i] = 2 + Math.random() * 3
+		splashAlphas[i] = Math.random()
+	}
+	splashGeometry.setAttribute('position', new THREE.BufferAttribute(splashPositions, 3))
+	splashGeometry.setAttribute('size', new THREE.BufferAttribute(splashSizes, 1))
+	splashGeometry.setAttribute('alpha', new THREE.BufferAttribute(splashAlphas, 1))
+
+	if (!splashTexture) {
+		splashTexture = createParticleTexture('splash', 32, isDark.value)
+	}
+
+	const splashMaterial = new THREE.PointsMaterial({
+		color: isDark.value ? 0x88aabb : 0xaaccff,
+		size: 5,
+		map: splashTexture,
+		transparent: true,
+		opacity: 0.8,
+		depthWrite: false,
+		blending: THREE.AdditiveBlending,
+	})
+
+	const splashes = new THREE.Points(splashGeometry, splashMaterial)
+	splashes.name = 'splashes'
+	scene.add(splashes)
 }
 
 const createSnowyElements = () => {
@@ -486,6 +474,13 @@ const createSnowyElements = () => {
 		snowPositions[i * 3 + 2] = 0
 		snowVelocities[i] = 0.05 + Math.random() * 0.15
 		snowSizes[i] = 6 * props.particleSize + Math.random() * 6
+		;(snowSizes as any)[i] = Math.random() * Math.PI * 2
+	}
+
+	// We need a phase array for sway
+	const snowPhases = new Float32Array(snowCount)
+	for (let i = 0; i < snowCount; i++) {
+		snowPhases[i] = Math.random() * Math.PI * 2
 	}
 
 	snowGeometry.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3))
@@ -502,6 +497,7 @@ const createSnowyElements = () => {
 	})
 	const snow = new THREE.Points(snowGeometry, snowMaterial)
 	;(snow as any).velocities = snowVelocities
+	;(snow as any).phases = snowPhases
 	snow.frustumCulled = false
 
 	scene.add(snow)
@@ -597,23 +593,28 @@ const createCloudyElements = () => {
 	const sunAnchorRightX = w * 0.25
 	const sunAnchorY = -h * 0.25
 
-	const cloudCount = props.weatherType === 'partly' ? 4 : 8
+	const cloudCount = props.weatherType === 'partly' ? 3 : 8
 	for (let i = 0; i < cloudCount; i++) {
 		const cloudGroup = new THREE.Group()
 
-		const partCount = 6 + Math.floor(Math.random() * 4)
+		const partCount = 8 + Math.floor(Math.random() * 4)
 		for (let j = 0; j < partCount; j++) {
-			const size = 6 + Math.random() * 8
+			const size = 8 + Math.random() * 10
 			const cloudPartGeometry = new THREE.SphereGeometry(size, 16, 16)
 
 			const cloudPartMaterial = new THREE.MeshBasicMaterial({
 				map: cloudTexture,
 				transparent: true,
-				opacity: 0.6 + Math.random() * 0.3,
+				opacity: 0.5 + Math.random() * 0.3,
+				depthWrite: false,
 			})
 			const cloudPart = new THREE.Mesh(cloudPartGeometry, cloudPartMaterial)
-			cloudPart.position.set(Math.random() * 30 - 15, Math.random() * 15 - 7.5, 0)
-			cloudPart.scale.set(1, 0.6 + Math.random() * 0.4, 1)
+			cloudPart.position.set(
+				Math.random() * 40 - 20,
+				Math.random() * 20 - 10,
+				Math.random() * 10 - 5
+			)
+			cloudPart.scale.set(1, 0.7 + Math.random() * 0.3, 1)
 			cloudGroup.add(cloudPart)
 		}
 
@@ -624,20 +625,21 @@ const createCloudyElements = () => {
 				sunAnchorY + (Math.random() * (h * 0.12) - h * 0.06),
 				0
 			)
-			cloudGroup.userData.scaleFactor = 1.0 + Math.random() * 0.6
+			cloudGroup.userData.scaleFactor = 0.8 + Math.random() * 0.4
 			cloudGroup.children.forEach((child: any) => {
 				if (child.material) {
-					child.material.opacity = 0.4 + Math.random() * 0.3
+					child.material.opacity = 0.3 + Math.random() * 0.2
 					child.material.color.set(isDark.value ? 0x6e7c86 : 0xd1dbe8)
 				}
 			})
 		} else {
 			cloudGroup.position.set(Math.random() * w - w / 2, Math.random() * h - h / 2, 0)
-			cloudGroup.userData.scaleFactor = 0.8 + Math.random() * 0.4
+			cloudGroup.userData.scaleFactor = 0.6 + Math.random() * 0.4
 		}
 
-		cloudGroup.userData.speed = 0.03 + Math.random() * 0.15
+		cloudGroup.userData.speed = 0.01 + Math.random() * 0.04
 		cloudGroup.userData.direction = Math.random() > 0.5 ? 1 : -1
+		cloudGroup.userData.rotationSpeed = (Math.random() - 0.5) * 0.01
 		cloudGroup.scale.set(
 			cloudGroup.userData.scaleFactor,
 			cloudGroup.userData.scaleFactor,
@@ -710,19 +712,26 @@ const createStormyElements = () => {
 		scene.add(drop)
 	}
 
-	for (let i = 0; i < 3; i++) {
+	for (let i = 0; i < 5; i++) {
 		const stormCloudGroup = new THREE.Group()
 
-		for (let j = 0; j < 8; j++) {
-			const cloudPartGeometry = new THREE.SphereGeometry(10 + Math.random() * 15, 16, 16)
+		const partCount = 12 + Math.floor(Math.random() * 6)
+		for (let j = 0; j < partCount; j++) {
+			const size = 12 + Math.random() * 16
+			const cloudPartGeometry = new THREE.SphereGeometry(size, 16, 16)
 			const cloudPartMaterial = new THREE.MeshBasicMaterial({
-				color: isDark.value ? 0x3a3a4a : 0x5a5a6a,
+				color: isDark.value ? 0x2a2a3a : 0x4a4a5a,
 				transparent: true,
-				opacity: 0.4 + Math.random() * 0.3,
+				opacity: 0.5 + Math.random() * 0.4,
+				depthWrite: false,
 			})
 			const cloudPart = new THREE.Mesh(cloudPartGeometry, cloudPartMaterial)
-			cloudPart.position.set(Math.random() * 50 - 25, Math.random() * 20 - 10, 0)
-			cloudPart.scale.set(1, 0.4 + Math.random() * 0.3, 1)
+			cloudPart.position.set(
+				Math.random() * 60 - 30,
+				Math.random() * 30 - 15,
+				Math.random() * 20 - 10
+			)
+			cloudPart.scale.set(1, 0.5 + Math.random() * 0.4, 1)
 			stormCloudGroup.add(cloudPart)
 		}
 
@@ -732,8 +741,9 @@ const createStormyElements = () => {
 			(container.value.clientHeight || 600) / 2 - 100,
 			-10
 		)
-		stormCloudGroup.userData.speed = 0.01 + Math.random() * 0.05
+		stormCloudGroup.userData.speed = 0.02 + Math.random() * 0.08
 		stormCloudGroup.userData.direction = Math.random() > 0.5 ? 1 : -1
+		stormCloudGroup.userData.rotationSpeed = (Math.random() - 0.5) * 0.02
 
 		scene.add(stormCloudGroup)
 	}
@@ -743,6 +753,8 @@ const animate = () => {
 	if (!scene || !renderer || !clock) return
 
 	animationFrameId = requestAnimationFrame(animate)
+
+	updateCelestialBodies()
 
 	if (isPaused) {
 		if (!isAnimating) {
@@ -764,9 +776,9 @@ const animate = () => {
 			const originalPosition = obj.userData.originalPosition
 			const speed = obj.userData.speed
 			const phase = obj.userData.phase
-			
+
 			const windX = (props.wind?.x || 0) * 20
-			
+
 			obj.position.x = originalPosition.x + Math.sin(phase + Date.now() * 0.0005) * 5 + windX
 			obj.position.y = originalPosition.y + Math.sin(phase + Date.now() * 0.001 * speed) * 10
 			obj.userData.phase += 0.01
@@ -786,12 +798,16 @@ const animate = () => {
 				let y2 = arr[idx + 4]!
 				let z2 = arr[idx + 5]!
 
-				x1 += (props.wind?.x || 0) * delta * 10
-				y1 -= velocities[i]! * delta * 60
-				z1 += (props.wind?.y || 0) * delta * 10
-				x2 += (props.wind?.x || 0) * delta * 10
-				y2 -= velocities[i]! * delta * 60
-				z2 += (props.wind?.y || 0) * delta * 10
+				const vel = velocities[i]
+				const vx = props.wind?.x || 0
+				const vy = props.wind?.y || 0
+
+				x1 += vx * delta * 10
+				if (vel !== undefined) y1 -= vel * delta * 60
+				z1 += vy * delta * 10
+				x2 += vx * delta * 10
+				if (vel !== undefined) y2 -= vel * delta * 60
+				z2 += vy * delta * 10
 
 				if (y2 < -(height / 2) - 40) {
 					const newX = Math.random() * width - width / 2
@@ -814,7 +830,29 @@ const animate = () => {
 			positionsAttr.needsUpdate = true
 		}
 
-		if (obj instanceof THREE.Points && (obj as any).velocities) {
+		if (obj.name === 'splashes') {
+			const geometry = (obj as THREE.Points).geometry
+			if (geometry && geometry.attributes.position && geometry.attributes.alpha) {
+				const positions = geometry.attributes.position.array as Float32Array
+				const alphas = geometry.attributes.alpha.array as Float32Array
+				const count = positions.length / 3
+
+				for (let i = 0; i < count; i++) {
+					const alphaVal = alphas[i]
+					if (alphaVal !== undefined) {
+						alphas[i] = alphaVal - 0.05
+						if (alphas[i]! <= 0) {
+							alphas[i] = 1
+							positions[i * 3] = Math.random() * width - width / 2
+							positions[i * 3 + 1] = -height / 2 + Math.random() * 10
+						}
+					}
+				}
+				geometry.attributes.alpha.needsUpdate = true
+			}
+		}
+
+		if (obj instanceof THREE.Points && (obj as any).velocities && (obj as any).phases) {
 			const positionsAttr = (obj.geometry as THREE.BufferGeometry)?.attributes?.position as
 				| THREE.BufferAttribute
 				| undefined
@@ -824,6 +862,9 @@ const animate = () => {
 				const stride = positionsAttr.itemSize || 3
 				const count = positionsAttr.count
 
+				const w = container.value?.clientWidth || 800
+				const h = container.value?.clientHeight || 600
+
 				for (let i = 0; i < count; i++) {
 					const idx = i * stride
 					const x = arr[idx]!
@@ -832,9 +873,9 @@ const animate = () => {
 					arr[idx] =
 						x + (props.wind?.x || 0) * delta + Math.sin(Date.now() * 0.001 + i) * 0.05
 					y = y - velocities[i]! * delta * 60 - (props.wind?.y || 0) * delta * 10
-					if (y < -(height / 2) - 40) {
-						arr[idx + 1] = height / 2 + Math.random() * 20
-						arr[idx] = Math.random() * width - width / 2
+					if (y < -(h / 2) - 40) {
+						arr[idx + 1] = h / 2 + Math.random() * 20
+						arr[idx] = Math.random() * w - w / 2
 					} else {
 						arr[idx + 1] = y
 					}
@@ -846,12 +887,24 @@ const animate = () => {
 		if (obj.type === 'Group' && obj.userData.direction) {
 			const speed = obj.userData.speed
 			const direction = obj.userData.direction
+			const rotationSpeed = obj.userData.rotationSpeed || 0
+
 			obj.position.x +=
 				(direction * speed * 0.1 + (props.wind?.x || 0) * 0.05) * props.animationSpeed
-			if (obj.position.x > (container.value?.clientWidth || 800) / 2 + 50) {
-				obj.position.x = -((container.value?.clientWidth || 800) / 2) - 50
-			} else if (obj.position.x < -((container.value?.clientWidth || 800) / 2) - 50) {
-				obj.position.x = (container.value?.clientWidth || 800) / 2 + 50
+
+			if (rotationSpeed) {
+				if (obj instanceof THREE.Sprite) {
+					obj.material.rotation += rotationSpeed * delta
+				} else {
+					obj.rotation.z += rotationSpeed * delta
+				}
+			}
+
+			const w = container.value?.clientWidth || 800
+			if (obj.position.x > w / 2 + 100) {
+				obj.position.x = -(w / 2) - 100
+			} else if (obj.position.x < -(w / 2) - 100) {
+				obj.position.x = w / 2 + 100
 			}
 		}
 
@@ -875,7 +928,11 @@ const animate = () => {
 				Math.sin(Date.now() * 0.001 + windOffset * 0.1) * 0.5 + (props.wind?.x || 0) * 0.1
 
 			if (rotationSpeed) {
-				obj.rotation.z += rotationSpeed * delta
+				if (obj instanceof THREE.Sprite) {
+					obj.material.rotation += rotationSpeed * delta
+				} else {
+					obj.rotation.z += rotationSpeed * delta
+				}
 			}
 
 			if (obj.position.y < -((container.value?.clientHeight || 600) / 2) - 20) {

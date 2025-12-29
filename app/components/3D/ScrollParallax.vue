@@ -1,5 +1,7 @@
 <template>
-	<div class="scroll-parallax-container pointer-events-none fixed inset-0 -z-5" :style="parallaxStyle">
+	<div
+		class="scroll-parallax-container pointer-events-none fixed inset-0 -z-5"
+		:style="parallaxStyle">
 		<slot></slot>
 	</div>
 </template>

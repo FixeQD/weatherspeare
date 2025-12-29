@@ -51,6 +51,10 @@ export const useWeatherStore = defineStore('weather', () => {
 
 	const fetchWeatherWithHistory = async (city: string) => {
 		setCurrentCity(city)
+		// Reset state for new search
+		monologue.value = ''
+		shakespeareError.value = null
+
 		await fetchWeather(city)
 
 		if (weatherData.value) {

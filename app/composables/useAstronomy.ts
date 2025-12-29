@@ -42,7 +42,7 @@ export function useAstronomy() {
 		try {
 			const config = useRuntimeConfig()
 			const response = await axios.get(
-				`http://api.weatherapi.com/v1/forecast.json?key=${config.public.WEATHER_API_KEY}&q=${query}&days=1&aqi=no&alerts=no`
+				`http://api.weatherapi.com/v1/astronomy.json?key=${config.public.WEATHER_API_KEY}&q=${query}&days=1&aqi=no&alerts=no`
 			)
 
 			const location = response.data.location
@@ -99,14 +99,41 @@ export function useAstronomy() {
 		return (current - sunrise) / (sunset - sunrise)
 	}
 
+	const setAstronomyData = (data: AstronomyData) => {
+		astronomyData.value = data
+	}
+
+	const getMoonProgress = () => {
+		if (!astronomyData.value || !astronomyData.value.isMoonUp) return 0
+
+		const moonrise = parseTimeToMinutes(astronomyData.value.moonrise)
+		const moonset = parseTimeToMinutes(astronomyData.value.moonset)
+		const current = getCurrentMinutes()
+
+		if (moonset < moonrise) {
+			if (current >= moonrise) {
+				return (current - moonrise) / (1440 - moonrise + moonset)
+			} else if (current <= moonset) {
+				return (1440 - moonrise + current) / (1440 - moonrise + moonset)
+			}
+		} else {
+			if (current >= moonrise && current <= moonset) {
+				return (current - moonrise) / (moonset - moonrise)
+			}
+		}
+		return 0 // default center
+	}
+
 	return {
 		astronomyData,
 		loading,
 		error,
 		fetchAstronomy,
+		setAstronomyData,
 		getSunriseMinutes,
 		getSunsetMinutes,
 		getCurrentMinutes,
 		getSunProgress,
+		getMoonProgress,
 	}
 }

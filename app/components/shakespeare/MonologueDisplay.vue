@@ -2,7 +2,7 @@
 <template>
 	<Card
 		ref="cardRef"
-		v-if="monologue"
+		v-if="weatherData"
 		class="glass-strong overflow-hidden rounded-2xl border-0 shadow-xl transition-all duration-300 hover:shadow-2xl">
 		<CardHeader class="relative pb-2">
 			<CardTitle class="flex items-center gap-2">
@@ -14,11 +14,23 @@
 		<CardContent>
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">
-					<Button @click="copyToClipboard" variant="ghost" size="sm" class="h-8 w-8 p-0">
+					<Button
+						@click="copyToClipboard"
+						variant="ghost"
+						size="sm"
+						class="h-8 w-8 p-0"
+						:disabled="!monologue"
+						:class="{ 'cursor-not-allowed opacity-50': !monologue }">
 						<Copy v-if="!copied" class="h-4 w-4" />
 						<Check v-else class="h-4 w-4 text-green-500" />
 					</Button>
-					<Button @click="toggleFullscreen" variant="ghost" size="sm" class="h-8 w-8 p-0">
+					<Button
+						@click="toggleFullscreen"
+						variant="ghost"
+						size="sm"
+						class="h-8 w-8 p-0"
+						:disabled="!monologue"
+						:class="{ 'cursor-not-allowed opacity-50': !monologue }">
 						<Expand v-if="!isFullscreen" class="h-4 w-4" />
 						<Minimize v-else class="h-4 w-4" />
 					</Button>
@@ -26,7 +38,8 @@
 				<div class="flex items-center gap-2">
 					<select
 						v-model="selectedLanguage"
-						class="w-40 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800">
+						:disabled="shakespeareLoading"
+						class="w-40 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800">
 						<option v-for="lang in languages" :key="lang.code" :value="lang.code">
 							{{ lang.name }}
 						</option>
@@ -35,7 +48,8 @@
 						@click="regenerateMonologue"
 						variant="outline"
 						size="sm"
-						:disabled="shakespeareLoading">
+						:disabled="shakespeareLoading || !monologue"
+						:class="{ 'cursor-not-allowed opacity-50': !monologue }">
 						<RefreshCw v-if="!shakespeareLoading" class="mr-2 h-4 w-4" />
 						<Loader2 v-else class="mr-2 h-4 w-4 animate-spin" />
 						<span>{{ shakespeareLoading ? 'Generating...' : 'Regenerate' }}</span>
@@ -44,6 +58,7 @@
 			</div>
 
 			<div
+				v-if="monologue"
 				class="prose dark:prose-invert max-w-none"
 				:class="{
 					'min-h-[200px]': true,
@@ -55,25 +70,33 @@
 				</p>
 			</div>
 
+			<div
+				v-else-if="!shakespeareLoading"
+				class="flex min-h-[200px] flex-col items-center justify-center rounded-lg bg-gray-50/50 p-8 text-center dark:bg-gray-800/50">
+				<Theater class="mb-4 h-12 w-12 text-gray-400 opacity-20" />
+				<p class="mb-6 text-gray-500">
+					The stage is set, the weather awaits its poetic voice.
+				</p>
+				<Button
+					@click="regenerateMonologue"
+					size="lg"
+					class="bg-blue-600 px-8 hover:bg-blue-700">
+					Generate Shakespearean Monologue
+				</Button>
+			</div>
+
+			<div
+				v-else
+				class="flex min-h-[200px] flex-col items-center justify-center p-8 text-center">
+				<CreativeAILoader />
+			</div>
+
 			<div v-if="weatherData" class="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
 				<p class="text-sm text-gray-500 dark:text-gray-400">
 					Inspired by weather in {{ weatherData.name }}, {{ weatherData.sys.country }} -
 					{{ weatherData.weather[0].main }}, {{ Math.round(weatherData.main.temp) }}°C
 				</p>
 			</div>
-		</CardContent>
-	</Card>
-
-	<!-- Loading State -->
-	<Card v-else-if="shakespeareLoading && weatherData" class="py-12 text-center">
-		<CardContent>
-			<LoadingSpinner class="mx-auto mb-4" />
-			<p class="text-gray-600 dark:text-gray-300">
-				Crafting a Shakespearean masterpiece about {{ weatherData.name }}'s weather...
-				<span class="mt-2 block text-sm italic">
-					"The winds do howl, and rain doth fall like tears from heaven..."
-				</span>
-			</p>
 		</CardContent>
 	</Card>
 
@@ -114,6 +137,7 @@ import {
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import CreativeAILoader from './AILoader.vue'
 import LoadingSpinner from '../shared/LoadingSpinner.vue'
 import { useWeatherStore } from '@/stores/weatherStore'
 import { useShakespeare } from '@/composables/useShakespeare'

@@ -14,30 +14,6 @@
 				<span>{{ currentDate }}</span>
 			</Badge>
 
-			<DropdownMenu>
-				<DropdownMenuTrigger as-child>
-					<Button variant="outline" size="icon" class="rounded-full">
-						<Sun v-if="isDark" class="h-5 w-5 text-yellow-500" />
-						<Moon v-else class="h-5 w-5 text-blue-500" />
-						<span class="sr-only">Toggle theme</span>
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					<DropdownMenuItem @click="toggleTheme">
-						<Sun class="mr-2 h-4 w-4" />
-						<span>Light Mode</span>
-					</DropdownMenuItem>
-					<DropdownMenuItem @click="toggleTheme">
-						<Moon class="mr-2 h-4 w-4" />
-						<span>Dark Mode</span>
-					</DropdownMenuItem>
-					<DropdownMenuItem @click="toggleTheme">
-						<Laptop class="mr-2 h-4 w-4" />
-						<span>System</span>
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-
 			<Button
 				@click="handleGeo"
 				variant="outline"
@@ -55,19 +31,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Sun, Moon, Compass, Loader2, Laptop, Cloud } from 'lucide-vue-next'
+import { Sun, Compass, Loader2, Cloud } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useTheme } from '@/composables/useTheme'
 import { useGeolocation } from '@/composables/useGeolocation'
 
-const { isDark, toggleTheme } = useTheme()
 const { geoLoading, fetchCurLoc } = useGeolocation()
 
 const currentDate = computed(() => {

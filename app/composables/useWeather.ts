@@ -20,6 +20,7 @@ export function useWeather() {
 
 			const location = response.data.location
 			const current = response.data.current
+			const day = response.data.forecast.forecastday[0].day
 			const astro = response.data.forecast.forecastday[0].astro
 
 			weatherData.value = {
@@ -39,8 +40,8 @@ export function useWeather() {
 					temp: current.temp_c,
 					feels_like: current.feelslike_c,
 					humidity: current.humidity,
-					temp_min: current.temp_c,
-					temp_max: current.temp_c,
+					temp_min: day.mintemp_c,
+					temp_max: day.maxtemp_c,
 					pressure: current.pressure_mb,
 				},
 				wind: {
