@@ -59,6 +59,7 @@ export const useWeatherStore = defineStore('weather', () => {
 
 		if (weatherData.value) {
 			addToHistory(weatherData.value)
+			await fetchForecast(weatherData.value.coord.lat, weatherData.value.coord.lon)
 		}
 	}
 

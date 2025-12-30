@@ -143,12 +143,6 @@ const forecastLoading = computed(() => weatherStore.forecastLoading)
 const forecastError = computed(() => weatherStore.forecastError)
 const weatherHistory = computed(() => weatherStore.weatherHistory)
 
-onMounted(() => {
-	if (weatherData.value) {
-		fetchForecast()
-	}
-})
-
 const fetchForecast = async () => {
 	if (weatherData.value) {
 		await weatherStore.fetchForecast(weatherData.value.coord.lat, weatherData.value.coord.lon)
