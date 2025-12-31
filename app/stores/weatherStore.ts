@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { defineStore, skipHydrate } from 'pinia'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useWeather } from '@/composables/useWeather'
 import { useShakespeare } from '@/composables/useShakespeare'
 import { useSceneAI } from '@/composables/3D/useSceneAI'
@@ -33,6 +33,7 @@ export const useWeatherStore = defineStore('weather', () => {
 	const currentCity = ref('')
 	const recentCities = ref<string[]>([])
 	const weatherHistory = ref<any[]>([])
+	const isLoaded = ref(false)
 
 	const forecast = computed(() => forecastData.value || [])
 
@@ -93,26 +94,33 @@ export const useWeatherStore = defineStore('weather', () => {
 				weatherHistory.value = JSON.parse(savedHistory)
 			}
 		} catch (error) {
-			console.error('Failed to load from localStorage:', error)
+			console.error('WeatherStore: Failed to load from localStorage:', error)
+		} finally {
+			isLoaded.value = true
 		}
 	}
 
 	const saveToLocalStorage = () => {
-		if (!import.meta.client) return
+		if (!import.meta.client || !isLoaded.value) return
 		try {
 			localStorage.setItem('recentCities', JSON.stringify(recentCities.value))
 			localStorage.setItem('weatherHistory', JSON.stringify(weatherHistory.value))
 		} catch (error) {
-			console.error('Failed to save to localStorage:', error)
+			console.error('WeatherStore: Failed to save to localStorage:', error)
 		}
 	}
 
-	initFromLocalStorage()
+	// Initialize on client
+	onMounted(() => {
+		initFromLocalStorage()
+	})
 
 	watch(
 		[recentCities, weatherHistory],
 		() => {
-			saveToLocalStorage()
+			if (isLoaded.value) {
+				saveToLocalStorage()
+			}
 		},
 		{ deep: true }
 	)
@@ -128,8 +136,9 @@ export const useWeatherStore = defineStore('weather', () => {
 		forecastError,
 		shakespeareError,
 		currentCity,
-		recentCities,
-		weatherHistory,
+		recentCities: skipHydrate(recentCities),
+		weatherHistory: skipHydrate(weatherHistory),
+		isLoaded: skipHydrate(isLoaded),
 		sceneConfig,
 		sceneAIError,
 		fetchWeather: fetchWeatherWithHistory,
