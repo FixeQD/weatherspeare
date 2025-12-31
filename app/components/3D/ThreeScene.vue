@@ -19,6 +19,8 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import * as THREE from 'three'
 import { useTheme } from '~/composables/useTheme'
 const { isDark } = useTheme()
+import { useWeatherStore } from '~/stores/weatherStore'
+const weatherStore = useWeatherStore()
 // @ts-ignore
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
 // @ts-ignore
@@ -156,19 +158,22 @@ const initScene = () => {
 	scene.fog = new THREE.Fog(isDark.value ? 0x0b1418 : 0x17242a, 8, 60)
 
 	function applyTheme(dark: boolean) {
+		const aiConfig = weatherStore.sceneConfig
+
 		if (skyTexture) {
 			try {
 				skyTexture.dispose()
 			} catch (e) {}
 			skyTexture = null
 		}
-		skyTexture = createGradientTexture(1024, 1024, dark)
+		const palette = aiConfig?.skyPalette || getPalette(props.weatherType, dark)
+		skyTexture = createGradientTexture(1024, 1024, dark, palette)
 		scene.background = skyTexture
 
-		const fogColor = dark ? 0x0b1418 : 0x17242a
+		const fogColor = aiConfig?.fogColor || (dark ? 0x0b1418 : 0x17242a)
 		if (scene.fog) {
 			const f = scene.fog as THREE.Fog
-			f.color.setHex(fogColor)
+			f.color.set(new THREE.Color(fogColor))
 			f.near = 8
 			f.far = 60
 		} else {
@@ -179,13 +184,27 @@ const initScene = () => {
 			hemiLight.color.setHex(dark ? 0x283f54 : 0x87bfff)
 			;(hemiLight as any).groundColor.setHex(dark ? 0x081116 : 0x444140)
 		}
-		if (ambientLight) ambientLight.intensity = dark ? 0.22 : 0.28
-		if (directionalLight) directionalLight.intensity = dark ? 0.6 : 0.7
+
+		if (ambientLight) {
+			ambientLight.intensity = aiConfig?.lighting?.ambientIntensity || (dark ? 0.22 : 0.28)
+			if (aiConfig?.lighting?.lightColor) {
+				ambientLight.color.set(new THREE.Color(aiConfig.lighting.lightColor))
+			}
+		}
+
+		if (directionalLight) {
+			directionalLight.intensity =
+				aiConfig?.lighting?.directionalIntensity || (dark ? 0.6 : 0.7)
+			if (aiConfig?.lighting?.lightColor) {
+				directionalLight.color.set(new THREE.Color(aiConfig.lighting.lightColor))
+			}
+		}
 
 		if (bloomPass) {
-			bloomPass.strength = dark ? 0.18 : BLOOM_PARAMS.strength
-			bloomPass.radius = dark ? 0.2 : BLOOM_PARAMS.radius
-			bloomPass.threshold = dark ? 0.6 : BLOOM_PARAMS.threshold
+			bloomPass.strength = aiConfig?.bloom?.strength || (dark ? 0.18 : BLOOM_PARAMS.strength)
+			bloomPass.radius = aiConfig?.bloom?.radius || (dark ? 0.2 : BLOOM_PARAMS.radius)
+			bloomPass.threshold =
+				aiConfig?.bloom?.threshold || (dark ? 0.6 : BLOOM_PARAMS.threshold)
 		}
 
 		renderer.domElement.style.opacity = dark ? '0.22' : '0.35'
@@ -431,8 +450,8 @@ if (typeof document !== 'undefined') {
 	}
 }
 
-watch([() => props.weatherType, () => props.isNight], ([newWeatherType]) => {
-	fadeTransitionToWeather(newWeatherType as string, 900)
+watch([() => props.weatherType, () => props.isNight, () => weatherStore.sceneConfig], () => {
+	fadeTransitionToWeather(props.weatherType as string, 900)
 })
 
 onMounted(() => {

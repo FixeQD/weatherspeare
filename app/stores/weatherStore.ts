@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useWeather } from '@/composables/useWeather'
 import { useShakespeare } from '@/composables/useShakespeare'
+import { useSceneAI } from '@/composables/3D/useSceneAI'
 
 export const useWeatherStore = defineStore('weather', () => {
 	const {
@@ -21,6 +22,13 @@ export const useWeatherStore = defineStore('weather', () => {
 		error: shakespeareError,
 		generateMonologue,
 	} = useShakespeare()
+
+	const {
+		sceneConfig,
+		loading: sceneAILoading,
+		error: sceneAIError,
+		generateSceneConfig,
+	} = useSceneAI()
 
 	const currentCity = ref('')
 	const recentCities = ref<string[]>([])
@@ -60,6 +68,9 @@ export const useWeatherStore = defineStore('weather', () => {
 		if (weatherData.value) {
 			addToHistory(weatherData.value)
 			await fetchForecast(weatherData.value.coord.lat, weatherData.value.coord.lon)
+			generateSceneConfig(weatherData.value).catch((e) =>
+				console.error('Store: AI Scene generation failed', e)
+			)
 		}
 	}
 
@@ -119,6 +130,8 @@ export const useWeatherStore = defineStore('weather', () => {
 		currentCity,
 		recentCities,
 		weatherHistory,
+		sceneConfig,
+		sceneAIError,
 		fetchWeather: fetchWeatherWithHistory,
 		fetchForecast,
 		generateMonologue: generateWeatherMonologue,

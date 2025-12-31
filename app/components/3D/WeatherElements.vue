@@ -15,10 +15,15 @@ import * as THREE from 'three'
 import { useTheme } from '~/composables/useTheme'
 import { useWeatherTextures } from '~/composables/3D/useWeatherTextures'
 import { useCelestialBodies } from '~/composables/3D/useCelestialBodies'
+import { useAISeasonalParticles } from '~/composables/3D/useAISeasonalParticles'
+import { useWeatherStore } from '~/stores/weatherStore'
 
 const { isDark } = useTheme()
 const { createParticleTexture, createCloudTexture, createLightningGeometry } = useWeatherTextures()
 const { updateCelestialBodies: updateBodies } = useCelestialBodies()
+const { createParticles: createAIParticles, updateParticles: updateAIParticles } =
+	useAISeasonalParticles()
+const weatherStore = useWeatherStore()
 
 const container = ref<HTMLElement | null>(null)
 let snowTexture: THREE.Texture | null = null
@@ -147,6 +152,16 @@ const initScene = () => {
 			() => {
 				updateCelestialBodies()
 			}
+		)
+
+		watch(
+			() => weatherStore.sceneConfig,
+			(newConfig) => {
+				if (newConfig?.seasonalEffect?.active) {
+					createAIParticles(scene, width, height, newConfig.seasonalEffect)
+				}
+			},
+			{ immediate: true }
 		)
 
 		clock = new THREE.Clock()
@@ -769,6 +784,11 @@ const animate = () => {
 
 	if (!isAnimating) {
 		isAnimating = true
+	}
+
+	const aiConfig = weatherStore.sceneConfig
+	if (aiConfig?.seasonalEffect?.active) {
+		updateAIParticles(delta, width, height)
 	}
 
 	scene.children.forEach((obj) => {
